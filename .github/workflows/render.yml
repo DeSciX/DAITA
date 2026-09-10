@@ -1,0 +1,86 @@
+name: Render bundle
+
+# The platform origin is the only environment-dependent value in this repo. It lives in ONE
+# place — the DeSciX org-level Actions variable DESCIX_ORIGIN — and every file carrying it is
+# generated from templates/. Re-pointing the whole marketplace is one variable edit plus a
+# re-run; no file is hand-edited.
+#
+# NOTE ON THE FLIP: connectors are account-level and keyed by URL, so changing the origin does
+# not silently re-point existing users — it orphans their connector and they must reconnect.
+# Flip before publishing, not after.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'templates/**'
+      - 'scripts/render.mjs'
+      - '.github/workflows/render.yml'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [origin-changed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Fail before rendering rather than publishing a bundle that points at a dead origin.
+      # A marketplace whose .mcp.json cannot be reached is indistinguishable, to a new user,
+      # from a broken product.
+      - name: Verify the origin is live
+        env:
+          DESCIX_ORIGIN: ${{ vars.DESCIX_ORIGIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DESCIX_ORIGIN:-}" ]; then
+            echo "::error::DESCIX_ORIGIN is not set. Set it as an organization-level Actions variable on the DeSciX org."
+            exit 1
+          fi
+          origin="${DESCIX_ORIGIN%/}"
+          probe="$origin/.well-known/oauth-protected-resource"
+          echo "Probing $probe"
+          code=$(curl -s -o /tmp/probe.json -w '%{http_code}' --max-time 20 "$probe" || true)
+          if [ "$code" != "200" ]; then
+            echo "::error::$probe returned $code (expected 200). Refusing to render install strings for an origin that is not serving."
+            exit 1
+          fi
+          # The document must actually advertise the /mcp resource we are about to publish.
+          if ! grep -q "$origin/mcp" /tmp/probe.json; then
+            echo "::error::$probe did not advertise $origin/mcp as its protected resource."
+            cat /tmp/probe.json
+            exit 1
+          fi
+          echo "Origin verified: $origin"
+
+      - name: Render
+        env:
+          DESCIX_ORIGIN: ${{ vars.DESCIX_ORIGIN }}
+        run: node scripts/render.mjs
+
+      # Claude reads .mcp.json straight out of the plugin directory, so rendered output must be
+      # committed as real files — a build artifact is not enough.
+      - name: Commit rendered output
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes — rendered output already matches the current origin."
+            exit 0
+          fi
+          git config user.name  'descix-ci'
+          git config user.email 'ci@descix.net'
+          git add -A
+          git commit -m "ci: render bundle against ${{ vars.DESCIX_ORIGIN }}"
+          git push

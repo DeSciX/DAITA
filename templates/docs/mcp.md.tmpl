@@ -1,0 +1,133 @@
+# Connecting Claude to DeSciX
+
+DeSciX is headless. There is no dashboard to learn — you connect Claude to the platform and ask
+for what you want.
+
+## Setup, in order
+
+**1 — Install the marketplace and the plugin.**
+
+```
+/plugin marketplace add DeSciX/daita
+/plugin install daita@daita
+```
+
+On Cowork: chat **+** → **Add plugins…** → **Add marketplace**, then install from the card.
+
+The marketplace carries two plugins: **daita** (this on-ramp) and **daita-beast** (Beast, the
+coordination layer for agent teams). Install either or both — each lists the same connector.
+
+```
+/plugin install daita-beast@daita
+```
+
+**2 — Run the setup skill.**
+
+```
+/descix-setup
+```
+
+It walks you through the rest: creating your account and passkey, connecting the connector, and
+confirming you can reach the platform. Run it once.
+
+The plugin *lists* the connector but does not start it — you connect it yourself, once, from
+**Manage Connectors**. One connect is account-level and keyed by URL, so it serves every DeSciX
+plugin listing the same connector.
+
+```
+{{DESCIX_ORIGIN}}/mcp
+```
+
+`{{DESCIX_ORIGIN}}/connect` is the human sign-in page, not an MCP server. The setup skill sends
+you there to create your passkey; you never enter it as a connector URL.
+
+## Use the cloud brain
+
+The platform's knowledge lives in community knowledge bases, and `ask_question_to_app` is how you
+reach it. **Use it as your default for anything about a community, its research, or the platform
+itself** — it answers from real sources and returns citations you can pull.
+
+```
+ask_question_to_app({
+  app_id: "daita",
+  user_input: "<your question, in plain language>",
+  knowledgebase_names: ["General"]
+})
+```
+
+**Name the knowledge bases you want.** An answer that comes back with `sources: []` means your
+question fell through to a routing knowledge base rather than the one holding the content — name
+the KBs explicitly and ask again.
+
+### Keep the thread
+
+Every answer returns an `interaction_id`. Pass it back as `previous_interaction_id` on your next
+question and the conversation continues with full memory of what came before — follow-ups,
+refinements, and corrections all land in the same thread instead of starting cold.
+
+```
+ask_question_to_app({
+  app_id: "daita",
+  user_input: "<follow-up>",
+  previous_interaction_id: "<id from the previous answer>"
+})
+```
+
+This is the single highest-leverage habit on the platform. Ask it things; ask it follow-ups.
+
+## Don't learn an API — ask
+
+The surface is self-describing. Two calls carry almost everything:
+
+```
+tell_me_how({ scope: "bootstrap" })
+```
+Start here. Who you are, which environment you reached, what you can already access, and callable
+schemas for the tools you need first.
+
+```
+tell_me_how({ question: "<what you want to do, in your own words>" })
+```
+Searches the live command mesh and hands back the exact command and parameters. Use your own
+words — it is semantic, not keyword.
+
+Then invoke what it named:
+
+```
+execute_remote_command({ command: "<name>", params: { ... } })
+```
+
+**Guessing command names is the failure mode.** Ask, then invoke what you were told.
+
+## What's advertised at handshake
+
+A small set appears in `tools/list`. Everything else is reachable through
+`execute_remote_command` once `tell_me_how` names it — so don't expect the full command set in
+your client.
+
+| Tool | For |
+|---|---|
+| `tell_me_how` | Discovery. Your first call, and your fallback whenever unsure. |
+| `ask_question_to_app` | The cloud brain. Cited answers from community knowledge. Your default. |
+| `execute_remote_command` | Invoking anything discovery names. |
+| `find_communities` | Browse listed communities. |
+| `fetch_my_purchases` | What you own. |
+| `get_credit_balance` | Your USD AI-credit balance. |
+
+`query_knowledge_base` returns raw chunks with no synthesis. It exists for the narrow case where
+you want unsynthesized source text — reach for the cloud brain first.
+
+## On claude.ai, tools load on first use
+
+A "not loaded yet" error on a tool's first call is load-and-retry behaviour, not a failure. Call
+it again.
+
+## Costs
+
+Platform AI is metered in USD credits by actual usage, the same way an AI API bills. Connecting
+and discovery cost nothing. See [credits](credits.md).
+
+## The CLI is the same surface
+
+Everything here is also available from the `descix` CLI, which fronts the identical API. Use
+whichever fits; there is no second system to learn.
