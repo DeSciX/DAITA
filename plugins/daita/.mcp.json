@@ -2,7 +2,7 @@
   "mcpServers": {
     "descix": {
       "type": "http",
-      "url": "https://dev.descix.net/mcp"
+      "url": "https://descix.net/mcp"
     }
   }
 }

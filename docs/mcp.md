@@ -35,10 +35,10 @@ The plugin *lists* the connector but does not start it — you connect it yourse
 plugin listing the same connector.
 
 ```
-https://dev.descix.net/mcp
+https://descix.net/mcp
 ```
 
-`https://dev.descix.net/connect` is the human sign-in page, not an MCP server. The setup skill sends
+`https://descix.net/connect` is the human sign-in page, not an MCP server. The setup skill sends
 you there to create your passkey; you never enter it as a connector URL.
 
 ## Use the cloud brain
