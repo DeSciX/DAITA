@@ -173,10 +173,12 @@ descix site upload -c {community} -a {appId} -p {path}
 ```
 
 The `site upload` command:
-1. Hashes local files using `GitUtils.getFileHashes()`
-2. Calls `site_deploy_delta` API command to compare with remote state
-3. Uploads only changed files to GCS at `{env}/{appId}/site/`
-4. Sets `ip_site_gcs_path_url` in the app's Firestore Products doc
+1. Resolves the file list: the sources in `.descix/manifests/site.json` when it exists (running its `buildCommand` first), otherwise the `-p` directory.
+2. Refuses the whole upload if any file is backend source (`microservice/`), an agent persona (`system_instructions.md`), a credential (`wallet*.json`, `.env*`, `dev-overrides*.json`, `secret*.json`, keys, certificates) or workspace/tooling state (`.descix/`, `.claude/`, `.git/`). The refusal names each file; nothing is uploaded, dry runs included.
+3. Requests a deploy token (`get_site_deploy_token`) with the full file list and uploads **every** file of the build to GCS at `{env}/{appId}/site/`.
+4. Confirms the deploy (`confirm_site_deploy`). The server deletes every object under the site prefix that the build does not name, keeping `.descix_site_manifest.json` (a live deploy never touches `_preview/`), and sets `ip_site_gcs_path_url` on the app.
+
+A deploy therefore **replaces** the site: rolling back means re-uploading the earlier build. `--dry-run` lists what would be uploaded and what would be removed.
 
 The GCS path follows the convention: `{env}/{app_id}/site/` — the `/site/` segment separates static site files from `/assets/` and `/data/`.
 
