@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "buildCommand": "npm run build --prefix site",
+  "sources": [
+    {
+      "path": "site/dist",
+      "include": ["**/*"]
+    }
+  ]
+}

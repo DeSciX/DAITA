@@ -1,0 +1,107 @@
+# App Shell and SDK (As-Built)
+
+The `@descix/app-sdk` is the core package for all DeSciX web apps. Every app—DeSciX PWA, Powch PWA, standalone-vanilla, and standalone-react—imports `@descix/app-sdk` and is a first-class standalone app. Standalone is resolved at RUNTIME from a binding served at `/__descix/app-binding.json` on the shell's own origin, so one bundle boots as the store and as your app with no rebuild; an app that builds *itself* standalone declares it at its own mount, `<AppShell appId="my-app" standalone>`.
+
+## Peer Apps Diagram
+
+```mermaid
+flowchart TB
+    subgraph apps [All Apps Peer]
+        PowchPWA[Powch PWA]
+        StandaloneSample[standalone-react / vanilla]
+        DeSciXPWA[DeSciX PWA]
+    end
+
+    subgraph appSDK [descix/app-sdk]
+        MUI[MUI + Emotion]
+        PowchClient[PowchClient]
+        PowchBridgeClient[PowchBridgeClient]
+        PowchBridgeProvider[PowchBridgeProvider]
+        AppShell[AppShell]
+    end
+
+    PowchPWA --> appSDK
+    StandaloneSample --> appSDK
+    DeSciXPWA --> appSDK
+```
+
+All apps are peers. App shell is the "OS" for DeSciX apps.
+
+## Build-Time Identity
+
+When running via `descix-serve`, the gateway injects globals from `workspace.json`:
+
+- `__POWCH_APP_URL__`: resolved by `resolvePowchUrl` from `env.powchUrl` (Powch stays CROSS-origin by design)
+- `__API_GATEWAY_URL__`: `https://localhost:4000` (or configured API)
+- `__WORKSPACE_PRODUCTS__`: map of local apps to their **gateway-origin** URLs — `https://localhost:{gatewayPort}/p/{appId}`, with the platform app at the gateway root. Never an app's own dev-server port: apps are always shell-origin when iframed, or `contentWindow` reach throws a cross-origin `SecurityError`.
+
+There is no `__STANDALONE_APP_ID__` define; it is deleted platform-wide.
+
+When running standalone, apps define these in `vite.config.js`.
+
+## Auth: Host vs Identity Provider
+
+| App Type | Provider | Auth UI |
+|----------|----------|---------|
+| DeSciX PWA, standalone | `PowchBridgeProvider` + iframe | Powch iframe via `PowchSideBarWidget` |
+| Powch PWA | `PowchAppProvider` from `@powch/react` | Powch PWA owns its own UI |
+
+**DeSciX PWA does not use `@powch/react`.** It uses `usePowchBridge`, `PowchSideBarWidget`, `SignInButton` from app-sdk. Session hydration via `makeCommandRequestJSON` and `POWCH_LOGIN_COMPLETE` event.
+
+## State Flow
+
+```
+INITIALIZING → LOADING → READY
+                  ↓
+                ERROR
+```
+
+- **INITIALIZING**: SdkInitializer bootstrapping
+- **LOADING**: Auth in progress, session hydration
+- **READY**: Shell ready; app renders full-screen UI
+- **ERROR**: Error UI from shell
+
+## Provider Stack
+
+```
+ThemeProvider
+  └─ CssBaseline
+      └─ WagmiProvider
+          └─ (appId === 'powch': children only; app provides PowchAppProvider)
+          └─ (appId !== 'powch': PowchBridgeProvider)
+              └─ AppProvider
+                  └─ NetworkLoadingProvider
+                      └─ SdkInitializer
+                          └─ ErrorBoundary
+                              └─ ShellContent
+                                  └─ children (app component when READY)
+```
+
+## Dev Mode: descix-serve
+
+The primary development entry point is `descix-serve` (`npx descix serve` or `npm run dev:serve` from `DeSciX_Cloud/site`).
+
+**Architecture:**
+*   **Gateway:** `descix serve` acts as the reverse proxy and discovery server. Its port resolves `--port` > `env.gateway.port` > built-in `5173` and is printed with its source at startup.
+*   **Shell (5174):** `DeSciX_Cloud/site` runs the Store PWA.
+*   **Powch (5175):** `DeSciX_Powch/site` runs the Auth PWA.
+
+**Routing:**
+*   the gateway origin -> Proxies to the platform site's `env.platform.site.port` (Shell).
+*   Shell loads Powch iframe from `localhost:5175` (via `__WORKSPACE_PRODUCTS__` lookup).
+*   API requests (`/apifront`) -> Proxied to `localhost:3002` (Cloud Core).
+
+See [descix-serve-gateway](descix-serve-gateway.md).
+
+## Phase 3 Complete
+
+- Phase 1: @descix/app-sdk initialized (complete)
+- Phase 2: Powch PWA, standalone-vanilla, standalone-react migrated (complete)
+- Phase 3: DeSciX PWA migrated to @descix/app-sdk (complete)
+
+DeSciX PWA uses AppShell with `StandAloneAppWidget`; host apps use `PowchBridgeProvider` + iframe for auth.
+
+## Related
+
+- [pwa-overview](../pwa-sdk/pwa-overview.md) – PWA architecture
+- [descix-serve-gateway](descix-serve-gateway.md) – Local gateway
