@@ -44,10 +44,6 @@ export default defineConfig({
                             "link": "/app-sdk/mcp-integration"
                       },
                       {
-                            "text": "DeSciX end-to-end walkthrough: a brand-new account to a running app",
-                            "link": "/app-sdk/NEW-USER-E2E-WALKTHROUGH"
-                      },
-                      {
                             "text": "PWA / SDK Overview",
                             "link": "/app-sdk/pwa-sdk/index"
                       },
