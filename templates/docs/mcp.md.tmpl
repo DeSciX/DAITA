@@ -5,6 +5,9 @@ for what you want.
 
 ## Setup, in order
 
+This preview is written for **Claude Code**. Other MCP clients work — the connector is a standard
+remote HTTP MCP server with OAuth — but the commands below are Claude Code's.
+
 **1 — Install the marketplace and the plugin.**
 
 ```
@@ -14,32 +17,54 @@ for what you want.
 
 On Cowork: chat **+** → **Add plugins…** → **Add marketplace**, then install from the card.
 
-The marketplace carries two plugins: **daita** (this on-ramp) and **daita-beast** (Beast, the
-coordination layer for agent teams). Install either or both — each lists the same connector.
-
-```
-/plugin install daita-beast@daita
-```
-
 **2 — Run the setup skill.**
 
 ```
-/descix-setup
+/daita:descix-setup
 ```
 
-It walks you through the rest: creating your account and passkey, connecting the connector, and
-confirming you can reach the platform. Run it once.
+(`/descix-setup` also works when no other installed skill has that name.) It diagnoses where you
+are and takes you through the rest: registering the connector if it is not registered, signing in —
+which creates your DeSciX account and passkey if you do not have one — and confirming with a real
+call that you can reach the platform. Run it once.
 
-The plugin *lists* the connector but does not start it — you connect it yourself, once, from
-**Manage Connectors**. One connect is account-level and keyed by URL, so it serves every DeSciX
-plugin listing the same connector.
+**What it does, if you would rather do it yourself.** Installing the plugin registers the connector,
+so it appears in `claude mcp list` as `plugin:daita:descix`. Registering is not connecting: a new
+server reads `! Needs authentication` until you sign in, with
+
+```
+claude mcp login plugin:daita:descix
+```
+
+or by selecting it in the `/mcp` panel and choosing **Authenticate**. Either opens the browser for
+the passkey ceremony. Without the plugin, register it yourself first:
+
+```
+claude mcp add --transport http descix {{DESCIX_ORIGIN}}/mcp
+```
+
+Add `--scope user` for every project on your machine, or `--scope project` to write `.mcp.json` into
+a repository you share. In the claude.ai or desktop UI it is Settings → **Connectors** → add a
+custom connector with that same URL.
+
+One sign-in is account-level and keyed by URL, so it serves every DeSciX plugin listing the same
+connector.
 
 ```
 {{DESCIX_ORIGIN}}/mcp
 ```
 
-`{{DESCIX_ORIGIN}}/connect` is the human sign-in page, not an MCP server. The setup skill sends
-you there to create your passkey; you never enter it as a connector URL.
+`{{DESCIX_ORIGIN}}/connect` is the human sign-in page the browser opens during that ceremony, not an
+MCP server — you never enter it as a connector URL.
+
+**Also in this marketplace: `daita-beast`.** Beast is the coordination layer for agent teams working
+on DeSciX. Its verbs require platform-admin permissions today, so installing it as an ordinary user
+gives you a plugin whose commands will refuse. Install it only if you have been told you have that
+access.
+
+```
+/plugin install daita-beast@daita
+```
 
 ## Use the cloud brain
 
@@ -131,3 +156,15 @@ and discovery cost nothing. See [credits](credits.md).
 
 Everything here is also available from the `descix` CLI, which fronts the identical API. Use
 whichever fits; there is no second system to learn.
+
+**Building an app is the CLI's job**, not the connector's. The connector asks the platform things;
+the CLI creates apps, syncs knowledge bases and publishes sites:
+
+```
+npx -y -p @descix/cli descix --env prod config init   # --env is global and comes BEFORE the verb
+npx -y -p @descix/cli descix login                    # same account as the connector
+npx -y -p @descix/cli descix app init -a <name> -c <community>
+```
+
+`app init` prints the app id the platform issued — with `-c` it is `<community>-<name>` — and that
+issued id, not the name you typed, is what every later `-a` takes.

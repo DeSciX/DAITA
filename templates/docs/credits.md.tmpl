@@ -5,12 +5,20 @@ here is billed in **USD credits**, by actual usage, the way an AI API bills.
 
 ## You can start without buying anything
 
-A **free daily credit applies automatically to your first metered call each day**, and renews the
-next day. You do not claim it and there is nothing to enable.
+Two credits arrive without a purchase, and they behave differently.
 
-One thing that surprises people: your balance reads **$0.00** until that first call. The credit
-is applied at the moment you use it, not held in the balance beforehand. `get_credit_balance`
-tells you whether today's is still available:
+A **one-time welcome credit** is granted when your account finishes setup — connecting the
+connector, or signing in from the CLI. You do not claim it; the platform grants it at the moment it
+sees you finish, once per account. It is paid from a shared sponsored pool, so if that pool is empty
+or has reached its limit for the day the grant is declined and the platform says so rather than
+failing quietly.
+
+A **free daily credit applies automatically to your first metered call each day**, and renews the
+next day. There is nothing to enable.
+
+One thing that surprises people: the daily credit is not held in your balance beforehand — it is
+applied at the moment you use it. So a balance of **$0.00** does not mean you cannot make a call.
+`get_credit_balance` tells you both positions:
 
 ```
 get_credit_balance({})
