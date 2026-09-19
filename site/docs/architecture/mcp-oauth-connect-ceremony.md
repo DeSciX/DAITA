@@ -1,10 +1,6 @@
 # MCP OAuth Connect Ceremony + Passkey→Wallet Determinism (as-built)
 
-**Living reference — describes what the code does now.** Grounded against HEAD 2026-07-07
-(Cloud `microservice/services/*`, Powch `microservice/src/*` + `packages/*`). Supersedes the
-retired GitHub-era proposals (`mcp-oauth-claude-connector{,-detailed-design}.md`) and the
-freemium connect-ceremony design note — those were pre-Powch-first / pre-CEO-D-2026-07-07 and
-are deleted; git history is their archive.
+**Living reference — describes what the code does now.**
 
 **Scope:** (1) the OAuth connect ceremony that binds an MCP client to a DeSciX account, and
 (2) the passkey→wallet determinism & recovery model that makes the identity durable. Companion:
@@ -42,7 +38,7 @@ whose "login" step is the Powch passkey ceremony, not a password form:
 records that this **replaced the in-process `oauthAuthorizeState` Map** — so a ceremony survives
 across the stateless Cloud Function instances that may handle the authorize vs the complete leg.
 
-**GitHub is provider-linking only.** Per CEO-D-2026-07-07, GitHub is OUT of the authorize
+**GitHub is provider-linking only.** GitHub is OUT of the authorize
 trunk — the on-ramp is the Powch-first connect ceremony above. `GITHUB_CLIENT_SECRET` is
 retained solely for linking a GitHub identity to an already-authenticated DeSciX account.
 
@@ -90,8 +86,7 @@ Consequences (this is Option A as-built; "Option B" is merely its recovery prope
 ## 4. Consent-deferred wallet crossing
 
 The wallet exists client-local **before** `finishRegistration` returns (`PowchData.js:245`), but
-its **server visibility is consent-deferred** (`GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION`,
-`PowchData.js:260-270`): when `deferWalletRegistration === true`, `walletAddress` /
+its **server visibility is consent-deferred** (`PowchData.js:260-270`): when `deferWalletRegistration === true`, `walletAddress` /
 `walletSignature` are omitted from the finish payload (`:266-270`). The account uid is created
 atomically at register-finish regardless; only the wallet ADDRESS crossing waits for explicit
 consent.
@@ -100,11 +95,11 @@ consent.
 
 - **CONNECTED is email-gated.** `descix_accept_tos` (handled in **Powch** `index.js:799`, gate
   `:840-869`) requires a verified email before committing `tos_accepted_at` — server-verified
-  via an `EMAIL_VERIFICATIONS` doc or a prior `verified_email` (`:848-869`),
-  CEO-D-2026-07-07-EMAIL-REQUIRED-KYC. Email is a required KYC attribute, never the join key.
+  via an `EMAIL_VERIFICATIONS` doc or a prior `verified_email` (`:848-869`). Email is a required
+  KYC attribute, never the join key.
 - **Base entitlements are tos-gated.** `ensureBaseAppEntitlements` (`purchase.js:302`, call site
   `apiFront.js:952-953`) early-returns `{ granted: [], stamped: false, gated: 'pre_tos' }` when
-  `tos_accepted_at` is absent (`purchase.js:325`, CEO-D-2026-07-07-PHANTOM-DISSECTION-RULING).
+  `tos_accepted_at` is absent (`purchase.js:325`).
   No stamp is written, so the pass re-runs on the first post-CONNECTED touch. Pre-gate grantees
   keep their grants (documented decision — free-tier discovery apps).
 

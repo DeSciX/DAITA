@@ -35,19 +35,13 @@ Alternatively, you can copy just the folder ID from the URL:
 
 ### Step 4: Register Folder
 
-You can register your folder via:
+Register your folder in the DeSciX PWA:
 
-**Option A: DeSciX PWA (Web Interface)**
 1. Log in to the DeSciX PWA (via Powch)
 2. Navigate to **Developer Settings** or **Upload Knowledge** section
 3. Paste the folder link (or folder ID) into the "Drive Folder URL or ID" field
 4. Click **"Register Folder"**
 5. Wait for confirmation that the folder has been registered
-
-**Option B: DeSciX CLI (Command Line)**
-```bash
-descix app register-folder -u https://drive.google.com/drive/folders/YOUR_FOLDER_ID
-```
 
 After registration, your folder ID is stored in your user profile and will be used automatically when creating apps.
 

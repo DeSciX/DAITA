@@ -50,7 +50,7 @@ The system separates concerns between the **Immutable Registry** (Identity) and 
 | `gcsPath` | string | **The Site.** Bucket path for UI assets (e.g., `gs://.../uuid`). |
 | `ip_site_gcs_path_url` | string | **The URL.** Load-balancer subdomain URL (e.g., `https://egpt.demo.descix.net`). Set by `confirm_site_deploy`. |
 | `type` | enum | `COMMUNITY`, `APP` |
-| `price` | number | Purchase price in the community's token sale currency. **`USDCX` is dead terminology** (custodial purge, CEO-D-2026-06-14); on-chain purchases settle via `batchUpdateBalances`, and platform AI-consumption is billed via the separate USD credits ledger (`descix-headless-mvp-plan-2026-07-01.md` D2). |
+| `price` | number | Purchase price in the community's token sale currency. **`USDCX` is dead terminology**; on-chain purchases settle via `batchUpdateBalances`, and platform AI-consumption is billed via the separate USD credits ledger. |
 | `currency` | string | Currency code (default `USDSCI`). |
 | `metadata` | map | Runtime metadata (e.g., `is_public`, `owner_id`). |
 

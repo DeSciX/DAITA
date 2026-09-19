@@ -104,7 +104,7 @@ Every chunk record carries mandatory multi-tenancy fields:
     file_id: "local:abc123",
     entity_type: "CHUNK",
     // Document metadata
-    owner_id: "user@descix.net",
+    owner_id: "user@example.com",
     file_name: "architecture.md",
     chunk_idx: 0,
     total_chunks: 12
@@ -124,7 +124,7 @@ The `buildMetadataFilter()` function constructs Pinecone filters at any combinat
 | **KnowledgeBase** | `+ knowledgebase_name: { $eq: "General" }` | Single KB within app |
 | **Document** | `+ file_id: { $eq: "local:abc123" }` | Single file's chunks |
 | **Entity type** | `+ entity_type: { $eq: "SERVICE_DOC" }` | Only service READMEs |
-| **Owner** | `+ owner_id: { $eq: "user@descix.net" }` | User's private documents |
+| **Owner** | `+ owner_id: { $eq: "user@example.com" }` | User's private documents |
 | **Cross-community** | `{ community_ids: { $in: ["daita", "egpt"] } }` | Multi-community discovery |
 
 The filter builder supports both single values (`$eq`) and arrays (`$in`) for any field:

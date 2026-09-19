@@ -69,7 +69,7 @@ This provides recovery without exposing keys or PII.
 | **CLI/MCP** | Device code flow (`/device?code=X`) → Powch auth → `completeDeviceLogin` |
 | **Embedded** | `window.DeSciX.loginWithSessionToken` after bridge returns session |
 
-For PWA bridge details, see [PWA overview](../pwa-sdk/pwa-overview.md).
+For PWA bridge details, see [PWA overview](../app-sdk/pwa-sdk/pwa-overview.md).
 
 ## Separation of Concerns
 
@@ -81,6 +81,6 @@ For PWA bridge details, see [PWA overview](../pwa-sdk/pwa-overview.md).
 
 ## Related
 
-- [PWA overview](../pwa-sdk/pwa-overview.md) – Bridge-based auth
+- [PWA overview](../app-sdk/pwa-sdk/pwa-overview.md) – Bridge-based auth
 - [App shell and SDK](app-shell-and-sdk.md) – Provider stack
 - [What is DeSciX](../what-is-descix.md) – Platform overview

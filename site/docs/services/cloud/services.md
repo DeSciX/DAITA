@@ -19,8 +19,7 @@ This document describes the service layer architecture, including call stacks fo
 │ 3. For PWA: UserSession.is_authenticated(req)                  │
 │ 4. Load User from Firestore via User.from_firestore(user_id)   │
 │ 5. Determine LoginStatus: GUEST | AUTHENTICATED | CONNECTED    │
-│    (STAKED removed — CEO-D-2026-06-14; feature access is an    │
-│     entitlement query, not a login state)                     │
+│    (feature access is an entitlement query, not a login state) │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

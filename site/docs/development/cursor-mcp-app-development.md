@@ -26,18 +26,20 @@ How it works: services register with `SERVICE_README_{name}.md`; READMEs are vec
 
 1. **Initialize**: `descix init` creates `.descix/workspace.json`
 2. **Configure**: Add apps and ports in `workspace.json`
-3. **Serve**: `descix serve` (or `npm run dev:serve` from DeSciX_PWA) starts the local gateway
+3. **Serve**: `descix serve` starts the local gateway
 
 The gateway uses `createViteProxyConfig` from `@descix/app-sdk/dev` to proxy:
 
-- `/apifront`, `/api`, `/mcp` → Core
-- `/powch` → Powch PWA
-- `/s/{community}/{appId}` → `localhost:{service.port}` per `workspace.json`
+- `/apifront`, `/api`, `/mcp`, `/oauth` → the API origin
+- `/powch` → the Powch origin (`env.powchUrl`)
+- `/p/{appId}` → that app's site dev server, per `workspace.json` (no path rewrite — set your framework's base path to match)
+- `/s/{appId}` → that app's microservice, per `workspace.json` (prefix stripped)
+- `/Community` → the public GCS bucket
 
 ## MCP Integration
 
 - **Endpoint**: `/mcp` (proxied to Core in local dev and production)
-- **Tools**: `tell_me_how`, `execute_remote_command`, `search_knowledge_base`, `chat_with_kb`, `descix_init`, `git_sync_ops`, `descix_wizard_step`
+- **Tools**: `descix_doctor`, `tell_me_how`, `execute_remote_command`, `ask_question_to_app`, `query_knowledge_base`, `find_communities`, `list_apps_for_community`. `descix_doctor` is the first call: it reports auth state, workspace state, app context and the tools available.
 
 The MCP server runs in the CLI and uses the CLI's HTTP-only api-client for all backend operations.
 

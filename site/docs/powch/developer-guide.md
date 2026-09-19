@@ -10,7 +10,7 @@ This guide describes the **as-built** architecture: the three deployment cases, 
 
 Powch is a **zero-knowledge identity silo** — passkey-based authentication, email and wallet stored as encrypted cards. It operates in three modes:
 
-- **One-touch crypto onboarding:** Passkey creation atomically derives the master wallet from PRF. The wallet pair is derived locally during the ceremony but is **withheld from `powch_register_finish`** and registered post-consent via `register_powch_wallet_address` iff the user granted `wallet_address` sharing (GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION). Users land in CONNECTED after consent + email/TOS. See [prf-derived-master-wallet.md](./detailed/prf-derived-master-wallet.md).
+- **One-touch crypto onboarding:** Passkey creation atomically derives the master wallet from PRF. The wallet pair is derived locally during the ceremony but is **withheld from `powch_register_finish`** and registered post-consent via `register_powch_wallet_address` iff the user granted `wallet_address` sharing. Users land in CONNECTED after consent + email/TOS. See [prf-derived-master-wallet.md](./detailed/prf-derived-master-wallet.md).
 - **Host mode (Cases 1 & 2):** Powch runs in an iframe; the host PWA owns the iframe and communicates via postMessage.
 - **Standalone mode (Case 3):** Powch is the main app; no iframe, no sidebar, internal flows only.
 
@@ -89,11 +89,11 @@ powch.request({
 
 Because `require` includes `verified_email`, this routes to **POWCH_LOGIN** (AuthFlowController) — full identity + wallet flow, not wallet-only.
 
-### The `require` contract (deny-by-default — GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION)
+### The `require` contract (deny-by-default)
 
 `require` is a **REQUEST list only**. It defaults to empty, and:
 
-- **Empty/absent `require` ⇒ NOTHING is shared.** No consent prompt is shown because nothing is requested — and no PII field (email, wallet_address, wallet_signature, any tier field) crosses to the host. This includes the onboarding writes: the master wallet is withheld from `powch_register_finish` and `descix_accept_tos` is called without the email. **[AMENDED 2026-07-07 by CEO-D-2026-07-07-EMAIL-REQUIRED-KYC: deny-by-default governs host SHARING of PII, not account existence. A verified email is a REQUIRED KYC attribute to reach CONNECTED; the DeSciX account trunk always obtains one. The "without the email" branch is about third-party host sharing.]**
+- **Empty/absent `require` ⇒ NOTHING is shared.** No consent prompt is shown because nothing is requested — and no PII field (email, wallet_address, wallet_signature, any tier field) crosses to the host. This includes the onboarding writes: the master wallet is withheld from `powch_register_finish` and `descix_accept_tos` is called without the email. Deny-by-default governs host SHARING of PII, not account existence: a verified email is a REQUIRED KYC attribute to reach CONNECTED, and the DeSciX account trunk always obtains one. The "without the email" branch is about third-party host sharing.
 - **`require` can never suppress the prompt.** Requested PII fields without vault-stored consent always show ConsentView. The only silent pass-through is the user's own prior "Remember this choice" (`hasConsent(origin, require)`).
 - **`require` can never force sharing.** Only the user's approval (live or remembered) releases a field; the user may approve a subset of the requested fields.
 - **Every PII crossing passes `hasConsent(origin, field)`** — the FINISH release filter and the SUBMIT_TOS outbound writes both consume the canonical `ConsentRules` field-group matchers. There are no side channels. This applies to the DeSciX platform itself as a host: DeSciX must request the sign-in trio like any other host.
@@ -107,7 +107,7 @@ See [consent-pii-paradigm.md](./detailed/consent-pii-paradigm.md) for the canoni
 
 See [powch-state-machine.md](./detailed/powch-state-machine.md) for the full protocol.
 
-**Origin is browser-authoritative:** Powch stamps the consent origin from the postMessage `event.origin` (GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION). A host-supplied `payload.origin` is ignored — a host can never claim another origin's vault-stored consent. Hosts do not need to pass `origin`.
+**Origin is browser-authoritative:** Powch stamps the consent origin from the postMessage `event.origin`. A host-supplied `payload.origin` is ignored — a host can never claim another origin's vault-stored consent. Hosts do not need to pass `origin`.
 
 **Visibility gate error:** When the Powch tab is not visible, host requests are rejected with:
 

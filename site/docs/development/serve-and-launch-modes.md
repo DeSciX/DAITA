@@ -113,7 +113,5 @@ second way to say one thing.
 ## Deliberately not specified here
 
 The **direct-link entry-point shape** — the URL a developer or an end user hits to reach one app
-directly — is under an open CEO ruling. This page therefore tells you to open the URL the startup
-banner prints, and does not name a shape. The same applies to the **wrapped-per-app local route**.
-Neither is asserted here in either direction, on purpose: a freshly written shape would read as
-settled and outlive the ruling.
+directly — is not named on this page, and neither is the **wrapped-per-app local route**. Open the
+URL the startup banner prints. A URL shape written down here would read as settled when it is not.
