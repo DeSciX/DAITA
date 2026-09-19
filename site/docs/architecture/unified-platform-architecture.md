@@ -28,7 +28,7 @@ The `.descix/workspace.json` file drives the local routing configuration.
 ```json
 {
   "version": "2.1",
-  "workspaceRoot": "/Users/essam/Code/DeSciX",
+  "workspaceRoot": "/home/dev/my-descix-workspace",
   "type": "workspace",
   "env": {
     "environment": "DEV",
