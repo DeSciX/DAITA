@@ -138,7 +138,7 @@ You oversee the `DeSciX_Cloud` Broker that routes traffic and aggregates tools.
     1.  Deploy the Microservice (Cloud Run / App Engine).
     2.  Run `npm run register` from the microservice (or manually add Firestore doc).
     3.  Wait 5 minutes (or restart Core).
-    4.  Verify via CLI: `descix mcp list-tools`.
+    4.  Verify via CLI: `descix tell-me-how "<what your service does>"` names the service's tools once they are discoverable.
 
 ---
 
@@ -259,13 +259,18 @@ The client-side MCP now exposes only essential tools:
 
 | Tool | Type | Purpose |
 |------|------|---------|
+| `descix_doctor` | Local | Startup diagnostic: auth state, workspace context, active app, available tools |
+| `platform_health` | Local | Health of the core platform and, optionally, one named microservice |
 | `tell_me_how` | Remote | Discovery engine with scope control |
-| `descix_init` | Local | Git-aware project scaffolding |
-| `descix_wizard_step` | Hybrid | Stateful wizard execution |
-| `git_sync_ops` | Local | Git operations with message generation |
 | `execute_remote_command` | Gateway | Pass-through for discovered commands |
-| `search_knowledge_base` | Remote | Direct KB search (when you know the target) |
-| `chat_with_kb` | Remote | Conversational KB interaction |
+| `ask_question_to_app` | Remote | Ask an app's agent a question (RAG) |
+| `query_knowledge_base` | Remote | Direct KB search (when you know the target) |
+| `find_communities` | Remote | Find communities |
+| `list_apps_for_community` | Remote | List a community's apps |
+| `get_credit_balance` | Remote | Your USD AI-credit balance |
+
+The list a client actually sees is served live by `tools/list` and is filtered by what the
+caller is entitled to — the table above is the core every caller gets.
 
 ---
 

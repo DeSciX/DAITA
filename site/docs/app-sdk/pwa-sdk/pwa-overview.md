@@ -4,7 +4,7 @@ This guide provides patterns and conventions for the DeSciX PWA frontend. The pl
 
 ## Powch in the Ecosystem
 
-Powch is the **DeFi Banking + SSO layer** across DeSciX—one passkey-based identity for PWA, CLI, MCP, and embedded apps. Zero-knowledge, passwordless one-touch login, crypto with credit-card convenience, hardware-wallet-grade security. For the full narrative, see [Powch: DeFi Banking + SSO](../architecture/powch-defi-sso.md).
+Powch is the **DeFi Banking + SSO layer** across DeSciX—one passkey-based identity for PWA, CLI, MCP, and embedded apps. Zero-knowledge, passwordless one-touch login, crypto with credit-card convenience, hardware-wallet-grade security. For the full narrative, see [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md).
 
 ## Key Principles
 
@@ -84,6 +84,6 @@ graph TB
 
 ## Related
 
-- [Powch: DeFi Banking + SSO](../architecture/powch-defi-sso.md) – Full Powch narrative
+- [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md) – Full Powch narrative
 - [pwa-react-developer-guide](pwa-react-developer-guide.md) – State, viewRouter, single mutex
-- [app-shell-and-sdk](../architecture/app-shell-and-sdk.md)
+- [app-shell-and-sdk](../../architecture/app-shell-and-sdk.md)

@@ -4,24 +4,13 @@ This guide explains how to create apps in DeSciX communities.
 
 ## Prerequisites
 
-- **Authenticated Account**: You need a DeSciX account (Powch auth, TOS accepted)
-- **Drive Folder Registered**: You must register a Google Drive folder (see [Drive Setup](drive-setup.md))
+- **Authenticated Account**: You need a DeSciX account (Powch auth, TOS accepted) — `descix login`
 - **Community Access**: You need permission to create apps in the community
+- **Drive Folder Registered** (Drive mode only): register a Google Drive folder in the PWA — see [Drive Setup](drive-setup.md)
 
 ## App Creation Workflow
 
-### Step 1: Register Drive Folder
-
-First, register your Google Drive folder (see [Drive Setup](drive-setup.md) for details):
-
-```bash
-# Via CLI
-descix app register-folder -u https://drive.google.com/drive/folders/YOUR_FOLDER_ID
-
-# Or via PWA: Developer Settings / App Manager → Register Folder
-```
-
-### Step 2: Create App
+### Step 1: Create App
 
 You can create apps via PWA or CLI:
 
@@ -29,18 +18,32 @@ You can create apps via PWA or CLI:
 
 **Via CLI**:
 ```bash
-descix app init -a myapp -c descix
+descix app init -a myapp -c <community_id>
 ```
 
-### Step 3: Upload Knowledge
+The community must already be materialized in the environment you are targeting. `app init`
+creates the app record, its default `General` KB, and the local scaffold, and registers the app
+in `.descix/workspace.json`.
 
-Upload files to your knowledge base:
+### Step 2: Add Knowledge
+
+**Git mode (CLI)** — declare the source files in a corpus manifest and sync:
 
 ```bash
-# Via CLI
-descix app upload -c descix -a myapp -p ./local-folder-path -k General
+# 1. Create <app dir>/.descix/manifests/General.json naming your git-tracked markdown
+# 2. Preview, then sync
+descix kb corpus sync -a myapp --dry-run
+descix kb corpus sync -a myapp
+```
 
-# Or via PWA: Upload files directly to Drive folder
+**Drive mode (PWA)** — upload files to the registered Drive folder and let the server-side
+pipeline ingest them.
+
+### Step 3: Verify
+
+```bash
+descix kb corpus status -a myapp
+descix chat -a myapp --new "a question your documents answer"
 ```
 
 ## Folder Structure
@@ -82,7 +85,7 @@ MyDeSciXProjects/                        # Your base folder
 Each app has at least one knowledge base:
 - **Default KB**: `General` (auto-created)
 - **Custom KBs**: Create additional KBs for different content types
-- **RAG Enabled**: Use `descix kb build` to vectorize for AI chat
+- **RAG Enabled**: declare the KB's source files in `<app dir>/.descix/manifests/<KB>.json`, then run `descix kb corpus sync -a <app_id>` to vectorize them for AI chat
 
 ## API Flow
 
@@ -97,8 +100,8 @@ The typical workflow:
    - Creates Firestore documents (Community/App/KnowledgeBase)
    - Does NOT upload files yet
 
-3. **Upload Files** (`upload_files_to_kb` or local → `descix kb build`)
-   - Uploads files from local path or Drive
+3. **Upload Files** (`upload_files_to_kb`, or from git via `descix kb corpus sync`)
+   - Uploads files from Drive, or chunks the files a corpus manifest names
    - Processes files: Drive → GCS (full text) → Pinecone (vectors + chunks)
    - Files remain in your Drive folder
 

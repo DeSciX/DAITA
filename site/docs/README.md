@@ -30,9 +30,9 @@ Canonical as-built documentation for the DeSciX platform. DeSciX is a DEX + App 
 
 ## PWA / SDK
 
-- [PWA overview](pwa-sdk/index.md)
-- [PWA architecture](pwa-sdk/pwa-overview.md) – Bridge auth, no @powch/react
-- [PWA React developer guide](pwa-sdk/pwa-react-developer-guide.md) – State, viewRouter, single mutex
+- [PWA overview](app-sdk/pwa-sdk/index.md)
+- [PWA architecture](app-sdk/pwa-sdk/pwa-overview.md) – Bridge auth, no @powch/react
+- [PWA React developer guide](app-sdk/pwa-sdk/pwa-react-developer-guide.md) – State, viewRouter, single mutex
 
 ## Services
 

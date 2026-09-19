@@ -10,7 +10,7 @@ This guide documents the PWA Shell React architecture used in the DeSciX PWA (`D
 
 ## App-SDK as Core
 
-All PWAs (DeSciX PWA, Powch PWA) are built from `@descix/app-sdk`. The app-sdk provides init-to-READY shell logic, auth, API surface, and Powch bridge. Shell responsibilities (providers, SdkInitializer, AppContext) vs app responsibilities (view logic, widgets, API extensions) are documented in [App Shell and SDK](../architecture/app-shell-and-sdk.md).
+All PWAs (DeSciX PWA, Powch PWA) are built from `@descix/app-sdk`. The app-sdk provides init-to-READY shell logic, auth, API surface, and Powch bridge. Shell responsibilities (providers, SdkInitializer, AppContext) vs app responsibilities (view logic, widgets, API extensions) are documented in [App Shell and SDK](../../architecture/app-shell-and-sdk.md).
 
 **Phase 2 complete:** DeSciX PWA, Powch PWA, and standalone samples use `@descix/app-sdk` as their shell.
 

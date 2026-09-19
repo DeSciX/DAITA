@@ -46,13 +46,18 @@ descix tell-me-how --scope discovery "what tokenomics tools exist"
 
 | Tool | Type | Purpose |
 |------|------|---------|
-| `tell_me_how` | Remote | Discovery with scope control |
-| `descix_init` | Local | Project scaffolding |
-| `descix_wizard_step` | Hybrid | Stateful wizard |
-| `git_sync_ops` | Local | Git operations |
+| `descix_doctor` | Local | Startup diagnostic: auth state, workspace context, active app, available tools |
+| `platform_health` | Local | Health of the core platform and, optionally, one named microservice |
+| `tell_me_how` | Remote | Discovery engine with scope control |
 | `execute_remote_command` | Gateway | Pass-through for discovered commands |
-| `search_knowledge_base` | Remote | Direct KB search |
-| `chat_with_kb` | Remote | Conversational KB |
+| `ask_question_to_app` | Remote | Ask an app's agent a question (RAG) |
+| `query_knowledge_base` | Remote | Direct KB search (when you know the target) |
+| `find_communities` | Remote | Find communities |
+| `list_apps_for_community` | Remote | List a community's apps |
+| `get_credit_balance` | Remote | Your USD AI-credit balance |
+
+The list a client actually sees is served live by `tools/list` and is filtered by what the
+caller is entitled to — the table above is the core every caller gets.
 
 ## Loopback (Service-to-Core)
 

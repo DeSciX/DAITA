@@ -203,15 +203,22 @@ descix buy chains
 
 ### Prerequisites
 
-1. Backend server running: `cd DeSciX_Cloud && npm run dev`
-2. PWA server running: `cd DeSciX_PWA && npm run dev`
-3. CLI configured for dev: `descix config set-url https://localhost:4000`
+1. Signed in: `descix login`
+2. The workspace pinned to the environment you want to exercise:
+   ```bash
+   descix config init --env dev        # or: descix config set-env dev
+   ```
+   A single invocation can also be redirected with the global `--env` / `--api-url` flags,
+   placed before the subcommand.
 
 ### Manual E2E Test
 
+**Every environment settles on Polygon mainnet — there is no testnet lane. A quote you fund
+moves real value.**
+
 1. Create a quote:
    ```bash
-   NODE_TLS_REJECT_UNAUTHORIZED=0 descix buy quote --amount 1 --chain polygon --email test@example.com
+   descix buy quote --amount 1 --chain polygon --email <your email>
    ```
 
 2. Note the deposit address and amount
@@ -220,19 +227,10 @@ descix buy chains
 
 4. Monitor the quote status:
    ```bash
-   NODE_TLS_REJECT_UNAUTHORIZED=0 descix buy poll <quote_id>
+   descix buy poll <quote_id>
    ```
 
 5. Wait for the status to change to `fulfilled`
-
-### Test Script
-
-Run the automated test script:
-
-```bash
-cd DeSciX_Cloud
-node scripts/tests/cryptoPaymentE2E.js
-```
 
 ## Service Files
 

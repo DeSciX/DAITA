@@ -12,6 +12,15 @@ export default defineConfig({
   outDir: 'dist',
   ignoreDeadLinks: true,
   themeConfig: {
+    // THE HOME LINK POINTS AT A PAGE, NOT AT THE DIRECTORY. VitePress links the site title to
+    // `base`, which for a platform-hosted app is `/{env}/{app}/site/` — and the serving layer
+    // resolves no directory index there, so every page's home link returned the bucket's raw
+    // NoSuchKey error (measured 2026-09-19 on daita-docs, egpt-godsworld and daita alike: the bare
+    // directory 404s, index.html is 200). Naming the page keeps the docs navigable; the serving-
+    // layer gap is separate and platform-wide.
+    siteTitle: "DeSciX Docs",
+    logoLink: (process.env.VITE_BASE_PATH || '/') + 'index.html',
+    nav: [{ text: 'Home', link: (process.env.VITE_BASE_PATH || '/') + 'index.html' }],
     sidebar: [
           {
                 "text": "Overview",
@@ -36,7 +45,7 @@ export default defineConfig({
                             "link": "/app-sdk/architecture"
                       },
                       {
-                            "text": "Getting Started with appsdk",
+                            "text": "Getting Started",
                             "link": "/app-sdk/GETTING STARTED"
                       },
                       {
@@ -196,25 +205,11 @@ export default defineConfig({
                 ]
           },
           {
-                "text": "Deployment",
-                "collapsed": true,
-                "items": [
-                      {
-                            "text": "PWA App Deployment Guide",
-                            "link": "/deployment/app-deployment-guide"
-                      },
-                      {
-                            "text": "DeSciX Multi-Environment Deployment & SSL Architecture",
-                            "link": "/deployment/ssl-architecture-setup"
-                      }
-                ]
-          },
-          {
                 "text": "Powch",
                 "collapsed": true,
                 "items": [
                       {
-                            "text": "Airdrop Onboarding Flow (WS-ADMIN-B1 + T-FLOW-PASSKEY-FIRST)",
+                            "text": "Airdrop Onboarding Flow",
                             "link": "/powch/airdrop-onboarding-flow"
                       },
                       {
@@ -244,10 +239,6 @@ export default defineConfig({
                       {
                             "text": "Consent PII Paradigm",
                             "link": "/powch/detailed/consent-pii-paradigm"
-                      },
-                      {
-                            "text": "Design: AUTH Flow (Get ID Card for Site)",
-                            "link": "/powch/detailed/powch-flow-auth"
                       },
                       {
                             "text": "Design: Powch Headless Flow Controller Architecture",

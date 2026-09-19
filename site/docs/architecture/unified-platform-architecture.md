@@ -125,24 +125,24 @@ We explicitly **DO NOT** proxy peer apps through the Gateway Port (`:5173/p/powc
     *   `site/` (React PWA)
     *   `microservice/` (Node Service)
 
-## 6. Airdrop Onboarding (WS-ADMIN-B1 + T-FLOW-PASSKEY-FIRST)
+## 6. Airdrop Onboarding
 
-New in WS-ADMIN-B1: a three-path onboarding menu presented to new users who
-reach `AuthFlowController.AIRDROP_ONBOARDING_CHOICE`. Rendered by
+A three-path onboarding menu is presented to new users who reach
+`AuthFlowController.AIRDROP_ONBOARDING_CHOICE`. Rendered by
 `OnboardingEntryChoice` in `DeSciX_Powch/packages/react/src/views/`.
 
-Paths (post T-FLOW-PASSKEY-FIRST restructure, 2026-04-22):
+Paths:
 - **I have an airdrop private key** → passkey ceremony fires first →
   `CollectEmailTosPkView` consolidated form collects email + TOS + (optional)
   airdrop PK → `descix_accept_tos` verifies the EIP-191 signature and calls
   `confirm_wallet_any_registered_token` (any-token gate). Gate PASS writes a
   `pending_migrations` row; gate FAIL rejects without mutating the user record.
-- **Buy with Card** → `FiatStubScreen` (now a real fiat purchase rail; WS-AUTH-STATE-PURGE):
+- **Buy with Card** → `FiatStubScreen`, a real fiat purchase rail:
   reached only after the user is CONNECTED, it calls the canonical
   `create_stripe_checkout_session` rail (`PowchNetworkAPI.createStripeCheckoutSession`)
   and redirects to hosted Stripe Checkout. The webhook → `settleConfirmedFunds` →
   `batchUpdateBalances` mint delivers the community token to the user's master wallet.
-- **Buy with Crypto** → `CryptoStubScreen` (now a real crypto purchase rail; WS-AUTH-STATE-PURGE):
+- **Buy with Crypto** → `CryptoStubScreen`, a real crypto purchase rail:
   reached only after CONNECTED, it calls `create_crypto_quote`
   (`PowchNetworkAPI.createCryptoQuote`) to return a fixed-price quote + treasury deposit
   address. Full settlement (deposit detection → chain-watcher → mint) is deferred to the

@@ -26,18 +26,14 @@ Flow controllers receive a context object from PowchAppProvider (built by FlowRu
 
 Purpose: "Get ID Card for Site" — user identification, authentication (biometric), and data sharing consent. Triggered by `POWCH_LOGIN` or `POWCH_AUTH`. **requirements.vaultUnlocked:** false (this flow handles unlock/create itself).
 
-> **Consent restructure (2026-07-03 — GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION):**
-> the new-user commit path is now `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
+> **New-user commit path:** `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
 > with `powch_register_finish`) → `COLLECT_EMAIL_TOS_PK` (collect-only, no network) →
 > `CONSENT_GATE` → **`SUBMIT_TOS`** (consent-filtered writes: wallet registration via
 > `register_powch_wallet_address` iff `wallet_address` consented; `descix_accept_tos`
 > email iff an email field consented) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
-> Empty `require` ⇒ nothing shared. The mermaid diagram below also predates
-> WS-AUTH-STATE-PURGE (the pre-passkey AIRDROP_ONBOARDING_CHOICE is gone; the
-> entitlement choice is post-connect). `AuthFlowController.js` is the source of truth;
-> the affected state/event rows below have been updated.
+> Empty `require` ⇒ nothing shared. `AuthFlowController.js` is the source of truth.
 
-### State Machine (restructured 2026-04-22 via T-FLOW-PASSKEY-FIRST)
+### State Machine
 
 ```mermaid
 stateDiagram-v2
@@ -112,7 +108,7 @@ stateDiagram-v2
 | `APPROVE` | ConsentView | Persist consent via setSiteSettings if rememberChoice → SUBMIT_TOS (pendingTos) / ACQUIRE_ENTITLEMENT_CHOICE / FINISH |
 | `DENY` | ConsentView | Reject request |
 
-### Removed states (T-FLOW-PASSKEY-FIRST Chunk 4)
+### States that no longer exist
 
 - `VERIFY_AIRDROP_WALLET` — the pre-passkey TokenGateView preview is gone. The
   token gate now runs server-side inside `descix_accept_tos` on the submitted

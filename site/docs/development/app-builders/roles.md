@@ -90,5 +90,5 @@ const authorized = await checkUserPermission(user, PERMISSIONS.PLATFORM_MANAGE_C
 ## Related Documentation
 
 - [App Builders Overview](index.md) – Creating apps and knowledge bases
-- [Powch: DeFi Banking + SSO](../architecture/powch-defi-sso.md) – Authentication system
+- [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md) – Authentication system
 - [Cloud Services](../../services/cloud/services.md) – Backend services

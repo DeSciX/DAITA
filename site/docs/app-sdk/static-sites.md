@@ -74,19 +74,22 @@ The gateway auto-discovers static sites from workspace.json. You'll see them in 
 ```
   descix-serve — Unified Local Gateway
 
-  Workspace: /Users/you/Code/Unkamon
+  Workspace: <workspace root>
   API:       <api origin>     [<source>]
   Shell:     <shell origin>   [<source>]
   Port:      <port>           [<source>]
 
   Proxy routes:
-    /apifront                                → https://localhost:4000
-    /api                                     → https://localhost:4000
+    /apifront                                → <api origin>
+    /api                                     → <api origin>
     ...
 
   Static sites:
-    /p/egpt                                  → /Users/you/Code/Unkamon/EGPT
+    /p/<app_id>                              → <workspace root>/<localPath>
 ```
+
+Every value in that banner is printed with the source it came from. Read the banner rather than
+assuming a port or an origin.
 
 ### Live Reload
 
@@ -108,13 +111,11 @@ The gateway's `staticSitePlugin` handles requests to `/p/{appId}/`:
 Once your static site works locally, deploy to GCS:
 
 ```bash
-descix site upload -c {community} -a {appId} -p {path}
+descix site upload -c <community_id> -a <app_id> -p <path>
 ```
 
-Example for EGPT:
-```bash
-descix site upload -c unkamon -a egpt -p EGPT/
-```
+Run it with `--dry-run` first to see what would be uploaded and which server files would be
+removed.
 
 ### Upload Options
 

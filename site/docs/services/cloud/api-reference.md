@@ -31,8 +31,8 @@ This document catalogs all backend commands and their guest access status for co
 
 | Command | Purpose | Frontend Wrapper | Auth Level |
 |---------|---------|----------------|------------|
-| `purchase_product` | Purchase community/app | `purchaseProduct()` | CONNECTED; APP install gated by `verify_community_membership` (on-chain token holding). Price is informational only — priced (price>0) install is not implemented and fails loud (CEO-D-2026-06-14). |
-| `purchase_role` | Purchase role | `purchaseRole()` | CONNECTED; price informational only — priced (price>0) role purchase is not implemented and fails loud (CEO-D-2026-06-14). |
+| `purchase_product` | Purchase community/app | `purchaseProduct()` | CONNECTED; APP install gated by `verify_community_membership` (on-chain token holding). Price is informational only — priced (price>0) install is not implemented and fails loud. |
+| `purchase_role` | Purchase role | `purchaseRole()` | CONNECTED; price informational only — priced (price>0) role purchase is not implemented and fails loud. |
 | `ask_question_to_app` | Chat with app AI | N/A (via ChatWidget) | AUTHENTICATED + token balance |
 | `ask_question_to_community` | Chat with community AI | N/A | AUTHENTICATED + token balance |
 | `ask_question_to_knowledgebase` | Query knowledge base | N/A | AUTHENTICATED |

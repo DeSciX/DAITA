@@ -66,7 +66,7 @@ Events dispatched by PowchModal or views; only the App uses them. Handled (or no
 ```mermaid
 sequenceDiagram
   participant Host
-  participant SDK as [TODO - app-sdk powch references]
+  participant SDK as App SDK
   participant App as PowchAppProvider
   participant PD as PowchData
   participant AM as App State Machine

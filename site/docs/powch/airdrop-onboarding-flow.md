@@ -1,13 +1,12 @@
-# Airdrop Onboarding Flow (WS-ADMIN-B1 + T-FLOW-PASSKEY-FIRST)
+# Airdrop Onboarding Flow
 
 This document describes the three-path onboarding menu and the airdrop-wallet
-migration flow introduced in WS-ADMIN-B1, with the T-FLOW-PASSKEY-FIRST
-restructure applied (2026-04-22).
+migration flow.
 
-## Overview (WS-AUTH-STATE-PURGE — entitlement AFTER connect)
+## Overview — entitlement AFTER connect
 
-Per CEO-D-2026-06-14-DROP-CUSTODIAL-ELIMINATE-STAKED, **entitlement acquisition
-moved AFTER CONNECTED** and **zero entitlement is a valid resting state**. A new
+**Entitlement acquisition happens AFTER CONNECTED** and **zero entitlement is a
+valid resting state**. A new
 user goes straight to the passkey ceremony, becomes CONNECTED on email + TOS
 alone, and is THEN offered the entitlement-acquisition choice.
 
@@ -89,8 +88,7 @@ the canonical entitlement-after-connect path.
 
 ## Firestore schema
 
-See [`DeSciX_Cloud/kb/General/firestore-schemas.md`](../../DeSciX_Cloud/kb/General/firestore-schemas.md)
-for:
+The collections involved:
 - `pending_migrations` (composite index on `status` + `created_at`;
   `airdrop_address` + `master_wallet_address` + `tokens_snapshot` fields)
 - `AirdropVerifications` extension fields (`email`, `tokens_snapshot`)

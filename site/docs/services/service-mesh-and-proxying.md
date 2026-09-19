@@ -88,12 +88,12 @@ Platform LB is provisioned at standup by `deploy-backend-env.sh` → `provision-
 - [api-and-command-routing](api-and-command-routing.md)
 - [descix-serve-gateway](../architecture/descix-serve-gateway.md)
 
-## Cloud → Powch Loopback (WS-ADMIN-B1)
+## Cloud → Powch Loopback
 
-Previously the loopback direction was only Powch → Cloud via the `CORE_API_URL`
-config (Powch calling `get_platform_holdings` on Cloud during onboarding).
+Powch → Cloud runs via the `CORE_API_URL` config (Powch calling
+`get_platform_holdings` on Cloud during onboarding).
 
-WS-ADMIN-B1 adds the reverse direction: `airdrop_execute_queue` in Cloud's
+The reverse direction: `airdrop_execute_queue` in Cloud's
 `airdropCommands.js` proxies `powch_broadcast_batch_update_balances` back to
 Powch via `proxyToExternalService()` once the on-chain broadcast boundary is
 lifted. Until then the handler exits at `stopped_at_broadcast_boundary`.

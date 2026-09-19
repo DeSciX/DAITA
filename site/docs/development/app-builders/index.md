@@ -12,10 +12,13 @@ DeSciX apps are embedded applications that can:
 
 ## Quick Start
 
-1. **Register Drive Folder** – Share a Google Drive folder with DeSciX and register it via CLI or PWA
-2. **Create App** – Use PWA or `descix app init -a <name> -c <community>` (creates AND initializes; every app is guaranteed a default KB)
-3. **Upload Knowledge** – Add documents via `descix app upload` or directly to Drive
-4. **Enable RAG** – Use `descix kb build` (or push → pull → chunk → sync) to vectorize for AI chat
+1. **Create App** – Use the PWA, or `descix app init -a <name> -c <community_id>` (creates AND initializes; every app is guaranteed a default KB)
+2. **Declare Knowledge** – Write a corpus manifest at `<app dir>/.descix/manifests/<KB>.json` naming the git-tracked markdown files that belong in the KB
+3. **Enable RAG** – Run `descix kb corpus sync -a <app_id>` to chunk and vectorize those files for AI chat
+4. **Verify** – Ask a question with `descix chat -a <app_id> --new "..."`
+
+Non-developers can instead register a Google Drive folder and let the server-side pipeline
+ingest it — see [Drive Setup](drive-setup.md).
 
 ## Documentation
 
@@ -25,5 +28,5 @@ DeSciX apps are embedded applications that can:
 
 ## Related Documentation
 
-- [PWA / SDK](../pwa-sdk/index.md) – CodeSites and browser SDK
+- [PWA / SDK](../../app-sdk/pwa-sdk/index.md) – CodeSites and browser SDK
 - [RAG Pipeline](../../services/cloud/rag-pipeline.md) – Knowledge base vectorization

@@ -1,114 +1,149 @@
-# Getting Started with appsdk
+# Getting Started
 
-Welcome to your DeSciX app! This guide covers the basic CLI commands.
+This guide covers the CLI commands you need for a DeSciX app. Replace `<app_id>` and
+`<community_id>` with your own values throughout.
+
+## Installing the CLI
+
+The npm package is `@descix/cli`; the binary it installs is `descix`.
+
+```bash
+npm install -g @descix/cli
+descix --version
+```
+
+To run it without installing, name the package explicitly — `npx descix` resolves a different
+package:
+
+```bash
+npx -y -p @descix/cli descix --help
+```
 
 ## App Context
 
-When you're in this directory, CLI commands automatically detect your app:
-- **Community:** descix
-- **App:** appsdk
+When you run a command from inside a registered app directory, the CLI detects the app and the
+community from the workspace, so `-a` and `-c` are optional. From anywhere else, pass them.
 
 ## Knowledge Base Commands
 
 ### Add Content to Your KB
 
-1. Add or edit markdown files under `kb/General/`.
+1. Write or edit markdown anywhere in your repo, and commit it — the sync walks git.
 
-2. Sync your knowledge base to Pinecone:
+2. Declare those files in a corpus manifest at `.descix/manifests/<KB>.json` inside the app
+   directory. The manifest is the only thing that decides what is in a KB; there is no
+   directory the CLI scans. Schema:
+   [corpus-manifest-schema.md](../architecture/corpus-manifest-schema.md).
+
+3. Sync the knowledge base:
    ```bash
-   npx descix kb corpus sync -a appsdk
+   descix kb corpus sync -a <app_id>
    ```
 
    This command:
-   - Walks the corpus manifest (git blob SHAs track changes)
+   - Walks the corpus manifest at the manifest's git ref (git blob SHAs track changes)
    - Chunks changed files
-   - Upserts/deletes vectors in Pinecone
+   - Upserts changed vectors and deletes vectors for files no longer in the corpus
+
+   Run it with `--dry-run` first to see what it would add and remove without writing anything.
 
 ### KB Commands
 
 ```bash
-# Sync corpus to Pinecone (canonical path)
-npx descix kb corpus sync -a appsdk
+# Sync corpus to Pinecone (the one canonical sync path)
+descix kb corpus sync -a <app_id>
 
-# Check corpus sync status (drift detection)
-npx descix kb corpus status -a appsdk
+# Preview a sync without writing
+descix kb corpus sync -a <app_id> --dry-run
 
-# Check live vector drift vs local sync state
-npx descix kb doctor -a appsdk -k General
+# Sync from an unmerged branch instead of the manifest's ref
+descix kb corpus sync -a <app_id> --ref <branch>
+
+# Show corpus sync state (files, chunks, last sync, resolved ref)
+descix kb corpus status -a <app_id>
+
+# Check a KB against its last sync by file identity (orphans and missing files)
+descix kb doctor -a <app_id> -k General
 
 # List knowledge bases for an app
-npx descix kb list -a appsdk
+descix kb list -a <app_id>
 ```
 
-### Drive Commands (Drive Mode — server-side pipeline)
-
-Drive Mode is a server-side, PWA-only pipeline. The CLI provides helpers to move files to/from Google Drive:
+### Verify the KB answers
 
 ```bash
-# Pull and convert files from Drive to local kb/
-npx descix drive pull -a appsdk
-
-# Push local staging files to Drive
-npx descix drive push -a appsdk
+descix chat -a <app_id> --new "a question your documents answer"
 ```
 
 ## Using Flags from Anywhere
 
-If you're not in the app directory, use flags:
+If you are not in the app directory, use flags:
 
 ```bash
-npx descix kb corpus sync -a appsdk -c descix
+descix kb corpus sync -a <app_id> -c <community_id>
 ```
 
 ## Site Commands
 
 ```bash
 # Add site scaffold
-npx descix site init
+descix site init
 
-# Deploy site to CDN
-npx descix site deploy
+# Upload the site to GCS and update app metadata
+descix site upload -a <app_id>
+
+# Preview what an upload would change
+descix site upload -a <app_id> --dry-run
+
+# Show deployment status and manifest
+descix site status -a <app_id>
 ```
 
 ## Microservice Commands
 
 ```bash
-# Add microservice scaffold  
-npx descix microservice init
+# Add microservice scaffold
+descix microservice init
 
-# Register service with gateway
-npx descix microservice register
+# Register the service with the gateway
+descix microservice register
 
-# Vectorize SERVICE_README for discovery
-npx descix microservice vectorize
+# Check the health of a registered service
+descix microservice health <name>
 ```
 
 ## Need Help?
 
 ```bash
-# Ask the AI for guidance
-npx descix tell-me-how "your question here"
+# Ask the platform which tools can do what you are trying to do
+descix tell-me-how "your question here"
 
 # Show all commands
-npx descix --help
+descix --help
 
 # Show command help
-npx descix kb --help
+descix kb --help
+descix kb corpus sync --help
 ```
+
+`--help` on any command is the authority for its flags. If a command does not exist, the CLI
+exits non-zero and lists the commands that do.
 
 ## Folder Structure
 
 ```
-appsdk/
-├── .descix.app/
-│   └── workspace.json    # App configuration
+<app_id>/
+├── .descix/
+│   ├── manifests/
+│   │   └── General.json      # Corpus manifest: which files are in the General KB
+│   └── sync-state/           # Written by `kb corpus sync`
 ├── assets/
 │   ├── app_description.md
 │   ├── system_instructions.md
 │   └── icon.png
-├── kb/
-│   └── General/          # KB source docs (markdown files)
-├── site/                 # (optional) Static site
-├── microservice/         # (optional) Backend service
-└── GETTING STARTED.md    # This file
+├── site/                     # (optional) Static site
+└── microservice/             # (optional) Backend service
 ```
+
+KB source files are not part of this tree — they stay wherever they already live in your
+repository, and the manifest names them by path.

@@ -32,7 +32,7 @@ All apps are peers. App shell is the "OS" for DeSciX apps.
 When running via `descix-serve`, the gateway injects globals from `workspace.json`:
 
 - `__POWCH_APP_URL__`: resolved by `resolvePowchUrl` from `env.powchUrl` (Powch stays CROSS-origin by design)
-- `__API_GATEWAY_URL__`: `https://localhost:4000` (or configured API)
+- `__API_GATEWAY_URL__`: the API origin the gateway resolved (`env.apiUrl`, or the `--api-url` / `--env` override for this run) — printed with its source in the startup banner
 - `__WORKSPACE_PRODUCTS__`: map of local apps to their **gateway-origin** URLs — `https://localhost:{gatewayPort}/p/{appId}`, with the platform app at the gateway root. Never an app's own dev-server port: apps are always shell-origin when iframed, or `contentWindow` reach throws a cross-origin `SecurityError`.
 
 There is no `__STANDALONE_APP_ID__` define; it is deleted platform-wide.
@@ -79,17 +79,19 @@ ThemeProvider
 
 ## Dev Mode: descix-serve
 
-The primary development entry point is `descix-serve` (`npx descix serve` or `npm run dev:serve` from `DeSciX_Cloud/site`).
+The primary development entry point is `descix serve`.
 
 **Architecture:**
 *   **Gateway:** `descix serve` acts as the reverse proxy and discovery server. Its port resolves `--port` > `env.gateway.port` > built-in `5173` and is printed with its source at startup.
-*   **Shell (5174):** `DeSciX_Cloud/site` runs the Store PWA.
-*   **Powch (5175):** `DeSciX_Powch/site` runs the Auth PWA.
+*   **Shell:** the platform site at `env.platform.site.port` runs the Store PWA.
+*   **Powch:** served from its own origin, `env.powchUrl` — cross-origin from the shell by design.
 
 **Routing:**
 *   the gateway origin -> Proxies to the platform site's `env.platform.site.port` (Shell).
-*   Shell loads Powch iframe from `localhost:5175` (via `__WORKSPACE_PRODUCTS__` lookup).
-*   API requests (`/apifront`) -> Proxied to `localhost:3002` (Cloud Core).
+*   Shell loads the Powch iframe from `env.powchUrl`.
+*   API requests (`/apifront`, `/api`, `/mcp`) -> proxied to the resolved API origin.
+
+No port on this page is a fixed value. Every one of them comes from `.descix/workspace.json` and is printed, with its source, by the `descix serve` startup banner.
 
 See [descix-serve-gateway](descix-serve-gateway.md).
 
@@ -103,5 +105,5 @@ DeSciX PWA uses AppShell with `StandAloneAppWidget`; host apps use `PowchBridgeP
 
 ## Related
 
-- [pwa-overview](../pwa-sdk/pwa-overview.md) – PWA architecture
+- [pwa-overview](../app-sdk/pwa-sdk/pwa-overview.md) – PWA architecture
 - [descix-serve-gateway](descix-serve-gateway.md) – Local gateway

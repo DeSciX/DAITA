@@ -1,11 +1,10 @@
 # Corpus Manifest Schema (canonical)
 
-**Status:** canonical (WS-EVP-DESCIX-KB-CLEANUP item 5, 2026-07-22)
 **Owner module:** `DeSciX_Core/descix-cli/lib/core/ManifestLoader.js`
 **Consumers:** `CorpusWalker.js`, `CorpusDenyLint.js`, `corpus.js`, and the conformance test.
 
 A corpus manifest declares a *view* over git-managed files for RAG indexing. Files stay in place —
-no staging; git blob SHAs handle versioning; Pinecone metadata handles multi-tenancy (CEO-D12).
+no staging; git blob SHAs handle versioning; Pinecone metadata handles multi-tenancy.
 
 Manifests live at `{app_root}/.descix/manifests/{kb_name}.json`.
 

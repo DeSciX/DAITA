@@ -59,5 +59,5 @@ sequenceDiagram
 
 ## Related Documentation
 
-- [Platform Architecture](../architecture/index.md) – Overall platform architecture
-- [Powch: DeFi Banking + SSO](../architecture/powch-defi-sso.md) – Identity and auth flows
+- [Platform Architecture](../../architecture/index.md) – Overall platform architecture
+- [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md) – Identity and auth flows

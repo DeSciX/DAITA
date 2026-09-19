@@ -1,8 +1,5 @@
 # App Usage & Entitlement Reporting — `report_app_usage`
 
-**Workstream:** WS-FRQTL-APPIFY · **Decision:** CEO-D-2026-06-08-WS-FRQTL-APPIFY-GO
-**Owner:** EVP-DeSciX (platform side) · **First consumer:** the `frqtl` npm CLI (EVP-FRAQTL)
-
 ## Purpose
 
 `report_app_usage` is the thin platform command an **external app SDK** (e.g. the `frqtl`
