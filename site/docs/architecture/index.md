@@ -4,7 +4,7 @@ This section documents the DeSciX platform architecture as built.
 
 ## Scalability
 
-**Broker-first microservice mesh**: Client SDK → `POST /apifront` → Core validates entitlements → `proxyToExternalService()` to app Cloud Run URLs discovered via Firestore `ServiceManifests`. The LB serves static sites and forwards command paths to **core platform app NEGs** (daita broker + powch at standup only). Non-core apps have no NEG on routine deploy. See [platform-must-know-briefer](platform-must-know-briefer.md) §3.
+**Broker-first microservice mesh**: Client SDK → `POST /apifront` → Core validates entitlements → `proxyToExternalService()` to app Cloud Run URLs discovered via Firestore `ServiceManifests`. This is the **platform-hosted dispatch path only** (the door injects the signed caller identity `params._descix`); it is NOT how an app's own user traffic is metered — the edge routes `{app}.descix.net/api` straight to Cloud Run `{app}-{env}` by name, and the app owner meters those users inside the microservice. Who meters what, and what the mesh signature is: [mesh-trust-model](mesh-trust-model.md). The LB serves static sites and forwards command paths to **core platform app NEGs** (daita broker + powch at standup only). Non-core apps have no NEG on routine deploy. See [platform-must-know-briefer](platform-must-know-briefer.md) §3.
 
 **Edge-cached PWA**: Static assets are served from GCS buckets. The load balancer applies host rules for `[app].{env}.descix.net` and routes traffic to the appropriate backend. PWAs (main app, Powch) deploy to GCS and are served globally.
 
@@ -15,6 +15,7 @@ This section documents the DeSciX platform architecture as built.
 - [descix-serve-gateway](descix-serve-gateway.md) – Unified local gateway; single port, workspace-driven routing
 - [app-shell-and-sdk](app-shell-and-sdk.md) – App shell as OS; all apps peers; build-time identity
 - [unified-product-registry](unified-product-registry.md) – Globally unique product IDs; frictionless dev-to-prod
+- [mesh-trust-model](mesh-trust-model.md) – The two mesh call directions, metering ownership, and the signed caller identity
 - [design-patterns](design-patterns.md) – Consolidated design patterns
 - [rag-chat-as-built](rag-chat-as-built.md) – RAG/Chat pipeline: request flow, model selection, Pinecone scoping, conversation threading
 - [analytics-pipeline](analytics-pipeline.md) – GTM + GA4 + BigQuery event pipeline: server-side Measurement Protocol, client-side dataLayer, app_id as sole product key
