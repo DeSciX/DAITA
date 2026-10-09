@@ -46,8 +46,8 @@ The `.descix/workspace.json` file drives the local routing configuration.
         "microservice": { "port": 3003, "devCommand": "npm run dev:service" }
       },
       {
-        "appId": "descix-docs",
-        "localPath": "descix-docs",
+        "appId": "daita-docs",
+        "localPath": "daita-docs",
         "site": { "port": 5176, "devCommand": "npm run dev", "protocol": "http" }
       }
     ]
