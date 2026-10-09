@@ -139,6 +139,10 @@ export default defineConfig({
                             "link": "/architecture/mcp-oauth-connect-ceremony"
                       },
                       {
+                            "text": "DeSciX Platform Basics",
+                            "link": "/architecture/platform-basics"
+                      },
+                      {
                             "text": "Powch: DeFi Banking + SSO",
                             "link": "/architecture/powch-defi-sso"
                       },
