@@ -1,5 +1,5 @@
 ## DeSciX lane
-LANE: platform          ENV: DEV (Unkamon/.descix/workspace.json; `descix whoami` must print dev chosen by env.apiUrl — never by an environment variable)
+LANE: platform          ENV: none pinned here (no .descix/workspace.json; the CLI defaults to PROD) — run platform commands from the Unkamon workspace (DEV) or with an explicit `--env`, never by exporting an environment variable
 SDK: the Core working tree via DESCIX_CLI; app-lane repos never read these trees — they use the published @descix/cli and @descix/app-sdk and the handbook named in the index
 INDEX: /Users/essam/Code/Unkamon/CLAUDE.md — imported at the end of this file
 
