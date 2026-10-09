@@ -419,6 +419,29 @@ The two hashes are equal. Measured on the reference app, both printed
 `https://<app_id>.descix.net/` in a browser — that URL is the app; the `/prod/...` path is only
 its storage — and exercise its main function.
 
+### 8.1 How your files are cached — three classes, set at upload
+
+Every uploaded file gets a cache policy from its NAME, bound at upload time:
+
+| File class | Cache-Control | What it means for a redeploy |
+|---|---|---|
+| `*.html` (incl. `index.html`) | `no-cache, no-store, must-revalidate` | never stale — every visit refetches |
+| Content-hashed assets (`name-<hash>.js/css/...`, the hash ≥ 8 chars — what Vite emits) | `public, max-age=31536000, immutable` | cached forever; a new build emits new names, so there is nothing to bust |
+| Everything else (non-hashed `.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | a returning visitor can be up to **5 minutes** stale |
+
+Two consequences worth designing for:
+
+- **Prefer content-hashed filenames for your JS modules.** A hashed module is immutable AND
+  always consistent — a browser can never mix two builds, because each build's URLs are new.
+- **If you serve non-hashed modules at fixed URLs** (hand-written ES modules, an import map),
+  the 5-minute window means a visitor mid-release can load your new HTML with a stale module —
+  if a release changes a module's *exports*, that visitor breaks until the cache revalidates.
+  Version the URLs yourself (`import './exhibits.js?v=<build>'`, stamped at build time) so each
+  release's module graph is atomic. The cache policy cannot give you that; URL identity can.
+
+Headers are per-object and set at upload, so re-uploading is what refreshes them — a policy you
+measure on a long-deployed file reflects the upload that wrote it.
+
 ## 9. List it, and discover the rest
 
 Your app exists and is yours the moment `app init` returns, but it is **unlisted**: visible to
