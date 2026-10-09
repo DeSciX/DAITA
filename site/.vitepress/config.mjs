@@ -19,8 +19,10 @@ export default defineConfig({
     // directory 404s, index.html is 200). Naming the page keeps the docs navigable; the serving-
     // layer gap is separate and platform-wide.
     siteTitle: "DeSciX Docs",
-    logoLink: (process.env.VITE_BASE_PATH || '/') + 'index.html',
-    nav: [{ text: 'Home', link: (process.env.VITE_BASE_PATH || '/') + 'index.html' }],
+    // Links are resolved against `base` by VitePress, so they are written WITHOUT it — writing
+    // base + 'index.html' produced /dev/daita-docs/site/dev/daita-docs/site/index.html.
+    logoLink: '/index.html',
+    nav: [{ text: 'Home', link: '/index.html' }],
     sidebar: [
           {
                 "text": "Overview",
@@ -40,6 +42,10 @@ export default defineConfig({
                 "text": "App SDK",
                 "collapsed": true,
                 "items": [
+                      {
+                            "text": "App Developer Runbook",
+                            "link": "/app-sdk/app-developer-runbook"
+                      },
                       {
                             "text": "SDK Architecture Reference",
                             "link": "/app-sdk/architecture"

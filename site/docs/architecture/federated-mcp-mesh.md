@@ -87,7 +87,7 @@ You no longer build isolated REST APIs. You build **Tool Providers**.
     - Register your manifest with the Core
 
 ### Benefits for You
-*   **Zero Auth Code:** Identity is handled by Core; you just get a trusted `_descix.user` object.
+*   **Zero Auth Code:** Identity is asserted by the platform door as a **signed** `params._descix`, and your service verifies it locally via `mountMeshApi` from `@descix/cloud-core` — never trust an unsigned `_descix`; an uncredentialed POST to `/api` is `401 MESH_CTX_MISSING`. See [`mesh-trust-model.md`](./mesh-trust-model.md).
 *   **Instant AI Availability:** Once registered, your tools are immediately available to every AI agent in the ecosystem.
 *   **Access to Core:** You can call *other* services via the Broker loopback.
 
@@ -105,27 +105,27 @@ You oversee the `DeSciX_Cloud` Broker that routes traffic and aggregates tools.
     *   Collection: `ServiceManifests`
     *   Stores: Command definitions, endpoints, and **Input Schemas**.
 
-2.  **Federated Discovery (`apiFront.js`):**
+2.  **Federated Discovery (`apiFront.js` → `buildPermissionFilteredToolList()`):**
     *   When a client calls `tools/list`, the Cloud:
-        1.  Loads native tools (Auth, Purchase).
-        2.  Loads external tools from `ServiceManifests`.
-        3.  Merges them into a single list.
+        1.  Loads the candidate universe — native tools plus external tools from `ServiceManifests` — from its one owner, `services/advertisableTools.js`.
+        2.  Filters it by the caller's permissions.
+        3.  Applies the DISCOVERY-CORE fence, serving only the ratified handshake floor plus the caller's granted command names and discarding the rest.
+        4.  Applies the OAuth read-only gate for public-internet OAuth callers.
+    *   The floor is owned by `DISCOVERY_CORE_TOOL_NAMES` / `describeDiscoveryCoreFence()` in `DeSciX_Core/descix-platform-api/src/mcp-tools/nativeTools.js`. Commands discarded at step 3 stay registered and callable — dispatch is unaffected — and agents reach them via `tell_me_how` + `execute_remote_command`.
 
 3.  **Command Routing — Broker-First (per [`platform-must-know-briefer.md`](./platform-must-know-briefer.md) §3):**
 
-    Sites use the SDK → `POST /apifront`. Core validates session + entitlements, then dispatches via `proxyToExternalService()` using Firestore `ServiceManifests`. **No LB NEG is required for new non-core apps** (manifest registration only).
+    Sites use the SDK → `POST /apifront`. Core validates session + entitlements, then dispatches via `proxyToExternalService()` using Firestore `ServiceManifests`. **No LB NEG is required for new non-core apps** (manifest registration only). This broker channel is the platform-hosted dispatch path; an app's own inbound user traffic (`{app}.descix.net/api`) goes edge → `{app}-{env}` directly and is metered by the app owner in-service, not at apiFront — see [`mesh-trust-model.md`](./mesh-trust-model.md).
 
     At the LB (provisioned once per env by `provision-platform-lb.js`):
     - `/apifront/*`, `/mcp/*`, `/api/*` on app hosts and env apex → `{env}-api-backend` (central Cloud Function `apiFront-http-{env}`)
-    -     Static site paths → GCS `/{env}/{app_id}/site/`. Canonical model: `docs/design/ws-mesh-broker-only.md`.
+    -     Static site paths → GCS `/{env}/{app_id}/site/`. Trust and metering ownership: [`mesh-trust-model.md`](./mesh-trust-model.md).
 
     Within the command-broker channel:
     *   Incoming request `POST /apifront` -> `command: "deploy_community"`
     *   Central CF reads in-memory `externalCommandRegistry` (sourced from Firestore `ServiceManifests`; see `serviceManifestManager.js:685-765`) -> Finds `deploy_community` belongs to `deploy-service`.
     *   CF validates User Session.
     *   CF proxies request via `proxyToExternalService()` — HTTPS POST to `https://{service.domain}/api/{commandName}` (e.g., `https://deploy-service.descix.net/api/deploy_community`).
-
-    See [`../services/cloud-lb-decentralized-routing.md`](../services/cloud-lb-decentralized-routing.md) for the per-host URL map shape.
 
 ### Operational Procedures
 
@@ -253,24 +253,18 @@ await tools.callTool('execute_remote_command', {
 });
 ```
 
-### Minimal Tool Set
+### Advertised Tool Surface
 
-The client-side MCP now exposes only essential tools:
+A client's `tools/list` is served live and is not a static list. It is the ratified DISCOVERY-CORE
+floor union the caller's granted command names — owned by `DISCOVERY_CORE_TOOL_NAMES` /
+`describeDiscoveryCoreFence()` in
+`DeSciX_Core/descix-platform-api/src/mcp-tools/nativeTools.js`, and applied by
+`buildPermissionFilteredToolList()` as described in §3. Every other registered command stays
+callable via `tell_me_how` + `execute_remote_command`.
 
-| Tool | Type | Purpose |
-|------|------|---------|
-| `descix_doctor` | Local | Startup diagnostic: auth state, workspace context, active app, available tools |
-| `platform_health` | Local | Health of the core platform and, optionally, one named microservice |
-| `tell_me_how` | Remote | Discovery engine with scope control |
-| `execute_remote_command` | Gateway | Pass-through for discovered commands |
-| `ask_question_to_app` | Remote | Ask an app's agent a question (RAG) |
-| `query_knowledge_base` | Remote | Direct KB search (when you know the target) |
-| `find_communities` | Remote | Find communities |
-| `list_apps_for_community` | Remote | List a community's apps |
-| `get_credit_balance` | Remote | Your USD AI-credit balance |
-
-The list a client actually sees is served live by `tools/list` and is filtered by what the
-caller is entitled to — the table above is the core every caller gets.
+The CLI's stdio MCP server concatenates two CLI-local diagnostics (`descix_doctor`,
+`platform_health`) onto the backend's list; they are local CLI operations, not `/apifront`
+commands, and the HTTP transport never advertises them.
 
 ---
 

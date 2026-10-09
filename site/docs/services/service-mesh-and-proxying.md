@@ -37,7 +37,7 @@ Core injects a `_descix` context object into the request body before proxying:
 }
 ```
 
-**Microservices trust `_descix`**—they do not re-validate the session or call the blockchain directly.
+**Microservices trust only the signed `_descix`** — the platform door signs it with the env's mesh key and the service verifies it locally in-process via `mountMeshApi` from `@descix/cloud-core` (no session re-validation, no blockchain call, no callback to the platform at request time). A service never trusts an unsigned `_descix` and never dispatches for a caller with no credential (`401 MESH_CTX_MISSING`). See [`../architecture/mesh-trust-model.md`](../architecture/mesh-trust-model.md).
 
 ### Loopback Pattern
 
@@ -70,9 +70,9 @@ Ports come from `.descix/workspace.json` (`communities.{c}.apps.{a}.service.port
 
 ## Production: Broker-First Routing
 
-**In production, sites call `/apifront` on their host (or env apex).** The load balancer routes `/apifront` and `/mcp` to the daita broker backend (`{env}-api-backend` → `apiFront-http-{env}`). On the powch host, `/api/*` routes to the powch NEG; on the apex, `/api` routes to the broker. Core validates entitlements and proxies to microservices via Firestore manifest dispatch for the canonical SDK path.
+**In production, sites call `/apifront` on their host (or env apex).** The edge routes `/apifront` and `/mcp` to the shared broker (`apiFront-http-{env}`), and `/api/*` on an app host straight to that app's Cloud Run service `{app}-{env}` by name. Core validates entitlements and proxies to microservices via Firestore manifest dispatch for the canonical SDK path — this is the platform-hosted dispatch path, not a metering point for an app's own inbound `/api` traffic (the app owner meters those users in-service; [`../architecture/mesh-trust-model.md`](../architecture/mesh-trust-model.md)).
 
-Platform LB is provisioned at standup by `deploy-backend-env.sh` → `provision-platform-lb.js` (powch NEG after `deploy-service-env.sh powch`). See [`../architecture/platform-must-know-briefer.md`](../architecture/platform-must-know-briefer.md) §3 and [`../../../docs/design/ws-mesh-broker-only.md`](../../../docs/design/ws-mesh-broker-only.md).
+Platform LB is provisioned at standup by `deploy-backend-env.sh` → `provision-platform-lb.js`. See [`../architecture/platform-must-know-briefer.md`](../architecture/platform-must-know-briefer.md) §3.
 
 ## Summary
 
@@ -84,7 +84,7 @@ Platform LB is provisioned at standup by `deploy-backend-env.sh` → `provision-
 ## Related
 
 - [mcp-mesh](mcp-mesh.md) – tell_me_how, tool discovery
-- [cloud-lb-decentralized-routing](cloud-lb-decentralized-routing.md)
+- [mesh-trust-model](../architecture/mesh-trust-model.md) – call directions, metering ownership, signed caller identity
 - [api-and-command-routing](api-and-command-routing.md)
 - [descix-serve-gateway](../architecture/descix-serve-gateway.md)
 
