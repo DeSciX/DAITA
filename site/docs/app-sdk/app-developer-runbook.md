@@ -386,7 +386,13 @@ npx -y -p @descix/cli@1.0.20 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
-`Site URL:`. The deploy records your git branch and commit. Then:
+`Site URL:`. The deploy records your git branch and commit.
+
+**Order guarantee:** every file of the new build is uploaded FIRST; removals happen only at the
+confirm step after all uploads succeed, and if any upload fails the deploy is not confirmed and
+nothing is removed from the server. So a build-stamped directory (`pub/<build>/…`) is fully
+present before the previous build's directory is pruned — only same-path files (like
+`index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
 npx -y -p @descix/cli@1.0.20 descix site status -c <community> -a <app_id>
@@ -426,7 +432,7 @@ edge then sets the BROWSER's TTL on top of it. Both rows matter:
 
 | File class | Origin policy (bound at upload) | What a browser holds it for |
 |---|---|---|
-| `*.html` (incl. `index.html`) | `no-cache, no-store, must-revalidate` | never cached — every visit refetches |
+| `*.html` — by extension, at any depth (`index.html`, `pub/experiments/<id>/index.html`, …) | `no-cache, no-store, must-revalidate` | never cached — every visit refetches (the edge passes `no-store` through) |
 | Content-hashed assets (`name-<hash>.js/css/...`, hash ≥ 8 chars — what Vite emits) | `public, max-age=31536000, immutable` | forever — a new build emits new names, nothing to bust |
 | Everything else (non-hashed `.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | **up to 4 hours** — the edge rewrites `max-age` to 14400 on every cacheable file (zone browser-TTL; measured: a non-hashed `.js` whose stored policy is 300 s serves `max-age=14400`) |
 
