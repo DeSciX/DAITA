@@ -427,16 +427,16 @@ its storage — and exercise its main function.
 
 ### 8.1 How your files are cached — what the browser actually gets
 
-Every uploaded file gets an origin cache policy from its NAME, bound at upload time — and the
-edge then sets the BROWSER's TTL on top of it. Both rows matter:
+Every uploaded file gets a cache policy from its NAME, bound at upload time, and the edge
+passes it through to the browser unchanged (measured per class on the live host):
 
-| File class | Origin policy (bound at upload) | What a browser holds it for |
+| File class | Cache-Control (bound at upload, served verbatim) | What a browser holds it for |
 |---|---|---|
-| `*.html` — by extension, at any depth (`index.html`, `pub/experiments/<id>/index.html`, …) | `no-cache, no-store, must-revalidate` | never cached — every visit refetches (the edge passes `no-store` through) |
+| `*.html` — by extension, at any depth (`index.html`, `pub/experiments/<id>/index.html`, …) | `no-cache, no-store, must-revalidate` | never cached — every visit refetches |
 | Content-hashed assets (`name-<hash>.js/css/...`, hash ≥ 8 chars — what Vite emits) | `public, max-age=31536000, immutable` | forever — a new build emits new names, nothing to bust |
-| Everything else (non-hashed `.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | **up to 4 hours** — the edge rewrites `max-age` to 14400 on every cacheable file (zone browser-TTL; measured: a non-hashed `.js` whose stored policy is 300 s serves `max-age=14400`) |
+| Everything else (non-hashed `.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | up to **5 minutes** stale |
 
-Design for the 4-hour row, not the 5-minute one:
+Design for the third row:
 
 - **Content-hash the WHOLE module graph.** A hashed file is immutable AND atomic per release —
   a browser can never mix two builds, because every URL changes. Bundlers (Vite) do this for
