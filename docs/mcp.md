@@ -11,7 +11,7 @@ remote HTTP MCP server with OAuth — but the commands below are Claude Code's.
 **1 — Install the marketplace and the plugin.**
 
 ```
-/plugin marketplace add DeSciX/daita
+/plugin marketplace add DeSciX/DAITA
 /plugin install daita@daita
 ```
 

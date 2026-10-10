@@ -13,7 +13,7 @@ You connect Claude to the platform and ask for what you want.
 **1 — Install**
 
 ```
-/plugin marketplace add DeSciX/daita
+/plugin marketplace add DeSciX/DAITA
 /plugin install daita@daita
 ```
 
