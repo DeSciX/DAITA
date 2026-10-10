@@ -443,7 +443,7 @@ Design for the third row:
   you.
 - **A `?v=<build>` stamp on your entry URLs is NOT enough** for an ES-module or import-map
   graph: the stamp busts only the files you stamp, and a module's own *relative imports* carry
-  no stamp — so mid-release, a fresh entry can still import a 4-hour-stale dependency. If you
+  no stamp — so mid-release, a fresh entry can still import a stale dependency. If you
   cannot hash filenames, put the build id in a **directory** (`pub/<build>/...`): relative
   imports inside the tree keep working, and every URL in the graph changes together.
 
