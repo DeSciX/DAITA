@@ -29,7 +29,7 @@ Every quoted output below is what CLI **1.0.20** printed on a real run against t
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix <command>
+npx -y -p @descix/cli@1.0.21 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
@@ -40,7 +40,7 @@ npx -y -p @descix/cli@1.0.20 descix <command>
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 
-**Verify:** `npx -y -p @descix/cli@1.0.20 descix --version` prints `1.0.20`.
+**Verify:** `npx -y -p @descix/cli@1.0.21 descix --version` prints `1.0.20`.
 
 ## 3. Pin production, then sign in
 
@@ -53,7 +53,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@1.0.20 descix config init --env prod
+npx -y -p @descix/cli@1.0.21 descix config init --env prod
 ```
 
 ```
@@ -73,7 +73,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix login
+npx -y -p @descix/cli@1.0.21 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -92,7 +92,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix whoami
+npx -y -p @descix/cli@1.0.21 descix whoami
 ```
 
 ```
@@ -108,7 +108,7 @@ followed by your User ID, Email, Wallet, `Session: Valid` and the hours remainin
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix app init -a <app_id> -p .
+npx -y -p @descix/cli@1.0.21 descix app init -a <app_id> -p .
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -130,7 +130,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix app init -a <name> -c <community> -p .
+npx -y -p @descix/cli@1.0.21 descix app init -a <name> -c <community> -p .
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -161,7 +161,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@1.0.21 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -181,7 +181,7 @@ npx -y -p @descix/cli@1.0.20 descix app set-site -a <app_id> --static site
 Then, from inside the app directory:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix serve
+npx -y -p @descix/cli@1.0.21 descix serve
 ```
 
 Bare `descix serve` reads your workspace's `env.products[]` entry — `localPath` and
@@ -251,9 +251,9 @@ Three rules that save you an afternoon:
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@1.0.20 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@1.0.20 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@1.0.21 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@1.0.21 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@1.0.21 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -264,7 +264,7 @@ shows every KB with its live vector count (`Source` column `live`).
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@1.0.21 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -360,7 +360,7 @@ generic head for up to 5 minutes — wait it out; nothing is wrong.
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@1.0.21 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -382,7 +382,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix site upload -a <app_id>
+npx -y -p @descix/cli@1.0.21 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -395,7 +395,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@1.0.21 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -456,7 +456,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@1.0.21 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -467,7 +467,7 @@ For everything this page does not cover — backend commands, payments, model tu
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@1.0.20 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@1.0.21 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -477,15 +477,15 @@ page, is the whole handbook; when neither answers, apply the wall rule at the to
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@1.0.20 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@1.0.20 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@1.0.20 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@1.0.20 descix app init -a <app_id> -p .           # 4  map repo ↔ app (add -c <community> to create)
-npx -y -p @descix/cli@1.0.20 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@1.0.20 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT
-npx -y -p @descix/cli@1.0.20 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
-npx -y -p @descix/cli@1.0.20 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@1.0.20 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@1.0.20 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@1.0.20 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@1.0.21 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@1.0.21 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@1.0.21 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@1.0.21 descix app init -a <app_id> -p .           # 4  map repo ↔ app (add -c <community> to create)
+npx -y -p @descix/cli@1.0.21 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@1.0.21 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT
+npx -y -p @descix/cli@1.0.21 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
+npx -y -p @descix/cli@1.0.21 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@1.0.21 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@1.0.21 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@1.0.21 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
