@@ -25,7 +25,11 @@
     },
     {
       "name": "daita-beast",
-      "source": "./plugins/daita-beast",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/DeSciX/daita-beast.git",
+        "path": "plugin"
+      },
       "description": "Beast is the coordination layer for agent teams working on DeSciX. Named seats take contracts that state their acceptance criteria up front, work them on their own branches, and hand back evidence against those criteria. Contracts, decisions, hand-backs and workstream state are kept as durable platform records rather than chat history, so a thread that compacts or a seat that restarts resumes from the record instead of re-deriving it. Install alongside the daita plugin, which sets up the DeSciX connector.",
       "category": "productivity",
       "keywords": [
