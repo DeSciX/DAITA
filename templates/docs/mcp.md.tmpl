@@ -58,9 +58,10 @@ connector.
 MCP server — you never enter it as a connector URL.
 
 **Also in this marketplace: `daita-beast`.** Beast is the coordination layer for agent teams working
-on DeSciX. Its verbs require platform-admin permissions today, so installing it as an ordinary user
-gives you a plugin whose commands will refuse. Install it only if you have been told you have that
-access.
+on DeSciX. Its verbs run under your own GitHub login and roles: in any repository you can write to
+you can seat a session, file decisions, post status and sweep your inbox; awarding needs admin or
+maintain on that repository. It runs on Claude Code local, Claude Code in the cloud and Cowork;
+`/daita-beast:install` detects the surface and sets up only what that surface needs.
 
 ```
 /plugin install daita-beast@daita
