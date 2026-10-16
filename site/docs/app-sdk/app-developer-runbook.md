@@ -475,8 +475,13 @@ shasum -a 256 site/index.html
 curl -fsS https://<app_id>.descix.net/prod/<app_id>/site/index.html | shasum -a 256
 ```
 
-The two hashes are equal. Measured on the reference app, both printed
-`08f069fedf1896bb1b6c0397a9c61a3b0e74f8eaed999f6f36e7164370e3b392`. Then open
+The hash covers the plain `curl` request above (curl's default `Accept: */*`), or the stored
+object at `https://storage.googleapis.com/descix-assets-public/prod/<app_id>/site/index.html`.
+An HTML fetch with a browser `Accept: text/html` header returns the page plus one injected
+`<script … static.cloudflareinsights.com/beacon.min.js …>` before `</body>` — never hash that
+response raw.
+
+The two hashes are equal. Then open
 `https://<app_id>.descix.net/` in a browser — that URL is the app; the `/prod/...` path is only
 its storage — and exercise its main function.
 
