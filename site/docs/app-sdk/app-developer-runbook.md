@@ -12,7 +12,7 @@ it printed), and hand it to the platform team. Do not read platform source to an
 Every command here targets the production platform, `https://descix.net`, as an external
 developer. Other environments exist for platform development and are out of scope for this page.
 
-Every quoted output below is what CLI **1.0.20** printed on a real run against the reference app
+Every quoted output below is what the CLI printed on a real run against the reference app
 `egpt-frqtl` (community `egpt`). Substitute your own `<app_id>` and `<community>`.
 
 ## 1. Prerequisites
@@ -36,7 +36,7 @@ npx -y -p @descix/cli@3.0.0 descix <command>
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "1.0.20" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "3.0.0" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 
@@ -106,9 +106,8 @@ followed by your User ID, Email, Wallet, `Session: Valid` and the hours remainin
 ## 4. Connect the repository to its app
 
 One repo, one app: the workspace is **single-app** (v3) and your repo's root IS its workspace
-root. Run `app init` **from the repo root**. If this checkout sits inside another DeSciX
-workspace, `app init` refuses rather than silently registering into the parent — move the
-checkout out (sibling checkouts are the supported layout) and re-run.
+root. Run `app init` **from the repo root**, in a checkout that is not inside another workspace
+(see **Repository hygiene** below).
 
 ### An app that already exists (the usual clone path)
 
@@ -148,8 +147,18 @@ record, writes `env.app`, scaffolds the three directories, and creates the defau
 
 `.descix/workspace.json` carries repo facts (the app's id, community, site and service config)
 and belongs IN git — every clone then serves the same app with no re-init. `.descix/wallet.json`
-is your credential and `.descix/sync-state/` is machine-local; neither is ever committed. The
-manifests and provenance files are deployable config and stay tracked.
+is your credential and `.descix/sync-state/` is machine-local; neither is ever committed, and
+`.descix/wallet.json` is git-ignored in every repository where it exists. The manifests and
+provenance files are deployable config and stay tracked.
+
+- **Every checkout is a sibling, never nested.** A checkout inside another DeSciX workspace is
+  not a supported layout. `app init` refuses to run there (`This directory is nested inside
+  another DeSciX workspace.`); `init`, `set-site` and `serve` run there without refusing.
+- **Never copy `.descix/workspace.json` or `.descix/wallet.json` into another checkout.** A
+  copied workspace file is accepted silently: that directory becomes a second workspace for the
+  same app id, it shadows any workspace above it for every command run inside it, and it
+  bypasses the `app init` refusal. Give each checkout its own `app init` and `login`; to preview
+  another directory's files, use §5.1.
 
 ```bash
 cat >> .gitignore <<'EOF'
@@ -158,8 +167,9 @@ cat >> .gitignore <<'EOF'
 EOF
 ```
 
-**Verify:** `git check-ignore .descix/wallet.json` prints the path;
-`git check-ignore .descix/workspace.json` prints nothing and exits 1.
+**Verify:** `git check-ignore -v .descix/wallet.json` prints the rule that ignores it
+(`.gitignore:<line>:.descix/wallet.json` followed by the path) — no output means the wallet is
+not ignored; `git check-ignore .descix/workspace.json` prints nothing and exits 1.
 
 ## 5. Run it locally: `descix serve`
 
@@ -177,22 +187,27 @@ npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site
   Written to env.app.site in workspace.json; `descix serve` picks it up.
 ```
 
-- `--static <dir>` serves a directory of built files from disk.
+- `--static <dir>` serves a directory of built files from disk. `<dir>` is a path **relative to
+  the workspace root** (the repo root), whichever directory you run `set-site` from; `../` is
+  allowed and serves normally (§5.1). An absolute path is not supported.
 - `--port <n>` routes to a framework dev server (Vite, VitePress, Next) instead; `site.protocol`
   (`http` or `https`) names the scheme the gateway uses to reach it, for dev servers that insist
   on one. Set the framework's base path to `/p/<app_id>/` — the gateway does not rewrite paths.
 - A configured route whose backend is not answering fails loud with a 502 that names the target,
   not a silent blank page.
 
-Then, from inside the app directory:
+Then, from the repo root or any directory below it:
 
 ```bash
 npx -y -p @descix/cli@3.0.0 descix serve
 ```
 
-Bare `descix serve` reads your workspace's `env.app` — `site.static` / `site.port` /
-`site.protocol` — and serves THE app this repo holds
-(`descix serve --app <app_id>` names it explicitly). The port resolves in order: `--port` flag,
+`descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
+its `env.app` — `site.static` / `site.port` / `site.protocol` — and serves THE app this repo
+holds. From outside the checkout, name both the workspace and the app:
+`descix serve -w <repo root> -a <app_id>`. With `-w` and no `-a`, serve exits 1 with
+`[serve binding] cannot tell which app to serve from <current directory>` and lists the apps in
+the workspace. The port resolves in order: `--port` flag,
 then `env.gateway.port` in `workspace.json`, then the built-in default `5173`. Read the banner —
 every line names its source:
 
@@ -229,7 +244,41 @@ curl -sk https://localhost:5173/__descix/app-binding.json
 curl -sk -o /dev/null -w "%{http_code}\n" https://localhost:5173/      # 200
 ```
 
-and in the browser the root URL shows your app inside the shell.
+and in the browser the root URL shows your app inside the shell. The banner's `Static sites:`
+line prints the absolute directory the app route reads from.
+
+### 5.1 Preview a scratch directory in the shell
+
+To see files that live outside `site/` — a build output, a prototype, another branch's export —
+inside the shell with sign-in, point THIS app's static route at them for the session, then put
+the tracked config back. From the app's own checkout, with the scratch directory beside it:
+
+```bash
+npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@3.0.0 descix serve
+```
+
+Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
+
+```bash
+curl -sk https://localhost:<Port>/__descix/app-binding.json
+# {"mode":"standalone","appId":"<app_id>","appUrl":"https://localhost:<Port>/p/<app_id>","source":"cwd"}
+curl -sk https://localhost:<Port>/p/<app_id>/      # the scratch directory's index.html
+```
+
+and the banner's `Static sites:` line names the scratch directory. When you are done, stop the
+gateway (Ctrl-C) and restore the tracked file — `git status --short` shows
+` M .descix/workspace.json` until you do:
+
+```bash
+git checkout -- .descix/workspace.json
+```
+
+**Verify:** `git status --short` prints nothing for `.descix/`. Never commit the scratch path.
+
+This is the only preview form. Not a preview: copying `workspace.json` or `wallet.json` into the
+scratch directory or another checkout (§4, **Repository hygiene**), a second app id, or
+`app init` run for the preview.
 
 ## 6. Knowledge bases
 
@@ -488,7 +537,7 @@ npx -y -p @descix/cli@3.0.0 descix login                               # 2  devi
 npx -y -p @descix/cli@3.0.0 descix whoami                              # 3  gate: env line + Email
 npx -y -p @descix/cli@3.0.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
 npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@3.0.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT
+npx -y -p @descix/cli@3.0.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
 npx -y -p @descix/cli@3.0.0 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
 npx -y -p @descix/cli@3.0.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
 npx -y -p @descix/cli@3.0.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
