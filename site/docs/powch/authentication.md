@@ -13,7 +13,7 @@ DeSciX uses **Powch** (zero-knowledge passkey wallet) as the sole authentication
 2. **CloudKey is the Master Wallet (Deterministic)**: CloudKey IS the master crypto wallet private key. It is **deterministically derived** from the PRF output via a domain-separated KDF (e.g. `HKDF-SHA256(prfOutput, credentialId, "DeSciX-CloudKey-v1")`). The PRF uses a **system-wide salt** (`powch-prf-v1`) across Powch for consistency. This design enables stateless recovery: the CloudKey can be re-derived on any device with the passkey and keychain sync (iCloud, Google), without relying on largeBlob storage. The passkey's largeBlob is no longer required for CloudKey storage.
    - **One touch to crypto:** Registration sends walletAddress + walletSignature to `powch_register_finish`; `descix_accept_tos` then upgrades to CONNECTED. See [prf-derived-master-wallet.md](./detailed/prf-derived-master-wallet.md).
 3. **Backend is Blind to Key Derivation**: The DeSciX backend has no knowledge of the PRF output, CloudKey derivation, or passkey internals. It only knows a WebAuthn assertion was verified and a user document (keyed by credentialId) was created or loaded.
-4. **Email is a REQUIRED, Verified KYC Attribute (the passkey remains the identity join key)**: The passkey is 1:1 with the account and IS the identity join key; a verified email is collected and verified after passkey creation but is REQUIRED to reach CONNECTED. DeSciX is a legal contractual DAO with KYC obligations — a verified email is a condition of service, and email-less accounts cannot reach CONNECTED. Consent to SHARE the email with a host remains explicit, but possessing a verified email is mandatory.
+4. **Email is a REQUIRED, Verified KYC Attribute (the passkey remains the identity join key)**: The passkey is 1:1 with the account and IS the identity join key; a verified email is collected and verified after passkey creation but is REQUIRED to reach CONNECTED. Per **CEO-D-2026-07-07-EMAIL-REQUIRED-KYC** (reverses Q-FO-5): DeSciX is a legal contractual DAO with KYC obligations — a verified email is a condition of service, and email-less accounts cannot reach CONNECTED. Consent to SHARE the email with a host remains explicit, but possessing a verified email is mandatory.
 5. **Cloud Vault is Opaque**: The backend stores an encrypted cloudVault blob keyed by the user ID (credentialId). It cannot read or interpret the contents.
 
 ## Login Status Progression
@@ -293,7 +293,7 @@ At passkey allocation (`powch_register_finish` or first `powch_login_finish`), t
 
 ### Entitlement acquisition (post-CONNECTED)
 
-CONNECTED is terminal. STAKED and custodial balances do not exist. After CONNECTED, a user acquires entitlements via co-equal branches — airdrop key import, fiat purchase (`create_stripe_checkout_session`), or crypto purchase (`create_crypto_quote`) — all of which converge on on-chain token holding. Feature access is then an entitlement query (`verify_community_membership` / `verify_subscription`), never a login state.
+CONNECTED is terminal. STAKED and custodial balances are removed (CEO-D-2026-06-14-DROP-CUSTODIAL-ELIMINATE-STAKED). After CONNECTED, a user acquires entitlements via co-equal branches — fiat purchase (`create_stripe_checkout_session`), or crypto purchase (`create_crypto_quote`) — all of which converge on on-chain token holding. Feature access is then an entitlement query (`verify_community_membership` / `verify_subscription`), never a login state.
 
 ```mermaid
 flowchart LR
