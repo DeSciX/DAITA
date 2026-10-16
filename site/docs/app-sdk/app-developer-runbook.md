@@ -29,18 +29,18 @@ Every quoted output below is what the CLI printed on a real run against the refe
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix <command>
+npx -y -p @descix/cli@3.0.1 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "3.0.0" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "3.0.1" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 
-**Verify:** `npx -y -p @descix/cli@3.0.0 descix --version` prints `3.0.0`.
+**Verify:** `npx -y -p @descix/cli@3.0.1 descix --version` prints `3.0.1`.
 
 ## 3. Pin production, then sign in
 
@@ -53,7 +53,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@3.0.0 descix config init --env prod
+npx -y -p @descix/cli@3.0.1 descix config init --env prod
 ```
 
 ```
@@ -73,7 +73,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix login
+npx -y -p @descix/cli@3.0.1 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -92,7 +92,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix whoami
+npx -y -p @descix/cli@3.0.1 descix whoami
 ```
 
 ```
@@ -112,7 +112,7 @@ root. Run `app init` **from the repo root**, in a checkout that is not inside an
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix app init -a <app_id>
+npx -y -p @descix/cli@3.0.1 descix app init -a <app_id>
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -134,7 +134,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix app init -a <name> -c <community>
+npx -y -p @descix/cli@3.0.1 descix app init -a <name> -c <community>
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -177,7 +177,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@3.0.1 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -189,7 +189,8 @@ npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site
 
 - `--static <dir>` serves a directory of built files from disk. `<dir>` is a path **relative to
   the workspace root** (the repo root), whichever directory you run `set-site` from; `../` is
-  allowed and serves normally (§5.1). An absolute path is not supported.
+  allowed and serves normally (§5.1). An absolute path is refused and nothing is written:
+  `--static takes a path relative to the workspace root (the repo root), e.g. site or ../scratch; got "/abs/x" (it is absolute). Nothing was written for <app_id>.`
 - `--port <n>` routes to a framework dev server (Vite, VitePress, Next) instead; `site.protocol`
   (`http` or `https`) names the scheme the gateway uses to reach it, for dev servers that insist
   on one. Set the framework's base path to `/p/<app_id>/` — the gateway does not rewrite paths.
@@ -199,7 +200,7 @@ npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site
 Then, from the repo root or any directory below it:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix serve
+npx -y -p @descix/cli@3.0.1 descix serve
 ```
 
 `descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
@@ -254,8 +255,8 @@ inside the shell with sign-in, point THIS app's static route at them for the ses
 the tracked config back. From the app's own checkout, with the scratch directory beside it:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static ../<dir>
-npx -y -p @descix/cli@3.0.0 descix serve
+npx -y -p @descix/cli@3.0.1 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@3.0.1 descix serve
 ```
 
 Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
@@ -306,9 +307,9 @@ Three rules that save you an afternoon:
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@3.0.0 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@3.0.0 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@3.0.1 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@3.0.1 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@3.0.1 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -319,7 +320,7 @@ shows every KB with its live vector count (`Source` column `live`).
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@3.0.1 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -415,7 +416,7 @@ generic head for up to 5 minutes — wait it out; nothing is wrong.
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@3.0.1 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -437,7 +438,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix site upload -a <app_id>
+npx -y -p @descix/cli@3.0.1 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -450,7 +451,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@3.0.1 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -516,7 +517,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@3.0.1 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -527,7 +528,7 @@ For everything this page does not cover — backend commands, payments, model tu
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@3.0.0 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@3.0.1 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -537,15 +538,15 @@ page, is the whole handbook; when neither answers, apply the wall rule at the to
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@3.0.0 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@3.0.0 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@3.0.0 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@3.0.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
-npx -y -p @descix/cli@3.0.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@3.0.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@3.0.0 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
-npx -y -p @descix/cli@3.0.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@3.0.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@3.0.0 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@3.0.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@3.0.1 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@3.0.1 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@3.0.1 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@3.0.1 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
+npx -y -p @descix/cli@3.0.1 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@3.0.1 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
+npx -y -p @descix/cli@3.0.1 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
+npx -y -p @descix/cli@3.0.1 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@3.0.1 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@3.0.1 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@3.0.1 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
