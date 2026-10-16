@@ -146,7 +146,7 @@ Tier 1 fields are still encrypted with PRF-derived key inside the vault before t
 
 | File | Change | Encapsulation |
 |------|--------|----------------|
-| **flows/AuthFlowController.js** | **Onboarding order (new user):** PROMPT_TYPE(NEW) → AIRDROP_ONBOARDING_CHOICE → CREATE_PASSKEY_BLOB → COLLECT_EMAIL_TOS_PK (gate PASS) → CONSENT_GATE → FINISH. The token gate runs server-side inside descix_accept_tos. Flow only calls PowchData; no SyncManager or vaultOps. | Business logic stays in flow state machine; views remain presentational. |
+| **flows/AuthFlowController.js** | **Onboarding order (new user, T-FLOW-PASSKEY-FIRST 2026-04-22):** PROMPT_TYPE(NEW) → AIRDROP_ONBOARDING_CHOICE → CREATE_PASSKEY_BLOB → COLLECT_EMAIL_TOS_PK (gate PASS) → CONSENT_GATE → FINISH. The legacy pre-passkey VERIFY_AIRDROP_WALLET + standalone COLLECT_EMAIL states were removed; the token gate runs server-side inside descix_accept_tos. Flow only calls PowchData; no SyncManager or vaultOps. | Business logic stays in flow state machine; views remain presentational. |
 | **views/CollectEmailView.jsx** | No change to encapsulation. If verification step is required before passkey create, the flow drives when to show CollectEmailView (e.g. before CREATE_PASSKEY_BLOB for new users). | View only emits SUCCESS/FAIL with payload; flow decides next state. |
 | **views/UnlockFailedView.jsx** | No change. | — |
 | **flows/FlowRunner.js** | No change. Pre-flight unlock remains; no awareness of cloud vs local. | — |

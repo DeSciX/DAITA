@@ -219,10 +219,6 @@ export default defineConfig({
                 "collapsed": true,
                 "items": [
                       {
-                            "text": "Airdrop Onboarding Flow",
-                            "link": "/powch/airdrop-onboarding-flow"
-                      },
-                      {
                             "text": "Powch Architecture",
                             "link": "/powch/architecture"
                       },

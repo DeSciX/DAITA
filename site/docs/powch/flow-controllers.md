@@ -26,14 +26,18 @@ Flow controllers receive a context object from PowchAppProvider (built by FlowRu
 
 Purpose: "Get ID Card for Site" — user identification, authentication (biometric), and data sharing consent. Triggered by `POWCH_LOGIN` or `POWCH_AUTH`. **requirements.vaultUnlocked:** false (this flow handles unlock/create itself).
 
-> **New-user commit path:** `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
+> **Consent restructure (2026-07-03 — GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION):**
+> the new-user commit path is now `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
 > with `powch_register_finish`) → `COLLECT_EMAIL_TOS_PK` (collect-only, no network) →
 > `CONSENT_GATE` → **`SUBMIT_TOS`** (consent-filtered writes: wallet registration via
 > `register_powch_wallet_address` iff `wallet_address` consented; `descix_accept_tos`
 > email iff an email field consented) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
-> Empty `require` ⇒ nothing shared. `AuthFlowController.js` is the source of truth.
+> Empty `require` ⇒ nothing shared. The mermaid diagram below also predates
+> WS-AUTH-STATE-PURGE (the pre-passkey AIRDROP_ONBOARDING_CHOICE is gone; the
+> entitlement choice is post-connect). `AuthFlowController.js` is the source of truth;
+> the affected state/event rows below have been updated.
 
-### State Machine
+### State Machine (restructured 2026-04-22 via T-FLOW-PASSKEY-FIRST)
 
 ```mermaid
 stateDiagram-v2
@@ -85,7 +89,7 @@ stateDiagram-v2
 | `UNLOCK_FAILED` | UI | UnlockFailedView — Create New Account or Back. CREATE triggers `_prefetchRegistration` + → CREATE_PASSKEY_BLOB |
 | `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (uses cached registrationOptions from Chunk 1 when available) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK |
 | `CHECK_EMAIL_CARD` | action | Returning-user branch: if identity card exists → CONSENT_GATE; else fallback to → COLLECT_EMAIL_TOS_PK |
-| `COLLECT_EMAIL_TOS_PK` | UI | CollectEmailTosPkView — consolidated email + TOS + OPTIONAL collapsible airdrop PK section. **Collect-only (no network):** stashes the payload on `ctrl.data.pendingTos` → CONSENT_GATE. |
+| `COLLECT_EMAIL_TOS_PK` | UI | CollectEmailTosPkView — consolidated email + TOS. **Collect-only (no network):** stashes the payload on `ctrl.data.pendingTos` → CONSENT_GATE. |
 | `CONSENT_GATE` | action | No PII requested → nothing shared (`consentedFields=[]`) and continue; requested + `hasConsent(origin, require)` → silent continue; else → SHOW_CONSENT_UI. Continuation is SUBMIT_TOS when `pendingTos` exists, else ACQUIRE_ENTITLEMENT_CHOICE (new onboarding) / FINISH. |
 | `SUBMIT_TOS` | action | Consent-filtered server commit: `register_powch_wallet_address` iff `wallet_address` consented (signature iff `wallet_signature` consented), then `descix_accept_tos` with email iff an email field consented (any-token gate runs server-side). Airdrop trio requires email consent (the challenge message embeds the email). Gate PASS: MASTER_ID card + vault persist (local), → ACQUIRE_ENTITLEMENT_CHOICE / FINISH. Gate FAIL: reject — user stays NOT_AUTHENTICATED. |
 | `SHOW_CONSENT_UI` | UI | ConsentView — approve or deny |
@@ -104,11 +108,11 @@ stateDiagram-v2
 | `CANCEL` | OnboardingEntryChoice | → PROMPT_TYPE |
 | `CREATE` | UnlockFailedView | → CREATE_PASSKEY_BLOB (with prefetch) |
 | `BACK` | UnlockFailedView | → PROMPT_TYPE |
-| `SUCCESS` | CollectEmailTosPkView | Stash payload (email, tosAccepted, optionalAirdropPk/Signature/Address) on `ctrl.data.pendingTos` — NO network call — → CONSENT_GATE. The server commit happens in SUBMIT_TOS after consent resolves. |
+| `SUCCESS` | CollectEmailTosPkView | Stash payload (email, tosAccepted) on `ctrl.data.pendingTos` — NO network call — → CONSENT_GATE. The server commit happens in SUBMIT_TOS after consent resolves. |
 | `APPROVE` | ConsentView | Persist consent via setSiteSettings if rememberChoice → SUBMIT_TOS (pendingTos) / ACQUIRE_ENTITLEMENT_CHOICE / FINISH |
 | `DENY` | ConsentView | Reject request |
 
-### States that no longer exist
+### Removed states (T-FLOW-PASSKEY-FIRST Chunk 4)
 
 - `VERIFY_AIRDROP_WALLET` — the pre-passkey TokenGateView preview is gone. The
   token gate now runs server-side inside `descix_accept_tos` on the submitted

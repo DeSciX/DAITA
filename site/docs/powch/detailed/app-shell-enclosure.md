@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Outer shell:** DeSciX PWA (App.jsx, AppContext, AppData) — the main browser window
-- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` — the deployed Powch origin, or in local development whatever `env.powchUrl` resolves to. Powch always has its OWN origin; it is never same-origin with the shell.
+- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` (e.g. https://powch.descix.net/ or https://localhost:5174/)
 - **Inner shell:** The iframe loads the Powch PWA — its own root app (PowchStandaloneApp) with its own isolated shell surface; standalone binding is runtime (`descix serve` / edge), never a build-time app id
 - **Two app shells:** Host owns the iframe; Powch has its own isolated Shell (session, makeCommandRequestJSON, window.DeSciX) inside the iframe
 - **Communication:** postMessage via PowchBridgeClient / PowchSideBarWidget
