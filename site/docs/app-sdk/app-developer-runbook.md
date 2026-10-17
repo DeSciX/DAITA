@@ -281,6 +281,33 @@ This is the only preview form. Not a preview: copying `workspace.json` or `walle
 scratch directory or another checkout (§4, **Repository hygiene**), a second app id, or
 `app init` run for the preview.
 
+### 5.2 Views: NoChrome and browser full screen
+
+Your app picks its layout in the shell with `DeSciX.view.set(mode)`. There are four views,
+owned by `VIEW_MODES` in `@descix/app-sdk`: `CodeSite` (your app gets the whole frame, inside
+the shell chrome), `SplitView` (your app beside chat, the default), `Chat` (chat only) and
+`NoChrome`. `DeSciX.view.set('NoChrome')` is the chromeless phone view: the shell renders no
+top bar, no padding and no chat, and your app fills the viewport inside the browser tab.
+`NoChrome` needs `@descix/app-sdk` 0.3.4 or later; 0.3.3 throws on it.
+
+Browser full screen is a different thing: the browser's Fullscreen API, which the shell's app
+iframe delegates (`allow="fullscreen"`). Your app calls `element.requestFullscreen()` from a
+user tap, on top of any view. Android and desktop browsers support it; iPhone Safari does not,
+and there `document.fullscreenEnabled` is `false`.
+
+```js
+DeSciX.view.set('NoChrome');
+if (document.fullscreenEnabled) {
+  fsButton.hidden = false;
+  fsButton.onclick = () => document.documentElement.requestFullscreen();
+}
+```
+
+**Verify** from the root, `https://localhost:<Port>/`, signed in: the shell's top bar and chat
+are gone and your app fills the tab; a tap on the button takes the page full screen on Android
+or desktop. Never verify views or full screen at `/p/<app_id>`: that frame has no shell, so
+there is no chrome to drop.
+
 ## 6. Knowledge bases
 
 Each KB is fed from **git**, by a manifest at `.descix/manifests/<kb_name>.json`. `path` is
