@@ -293,7 +293,7 @@ At passkey allocation (`powch_register_finish` or first `powch_login_finish`), t
 
 ### Entitlement acquisition (post-CONNECTED)
 
-CONNECTED is terminal. STAKED and custodial balances are removed (CEO-D-2026-06-14-DROP-CUSTODIAL-ELIMINATE-STAKED). After CONNECTED, a user acquires entitlements via co-equal branches — fiat purchase (`create_stripe_checkout_session`), or crypto purchase (`create_crypto_quote`) — all of which converge on on-chain token holding. Feature access is then an entitlement query (`verify_community_membership` / `verify_subscription`), never a login state.
+CONNECTED is terminal. STAKED and custodial balances are removed (CEO-D-2026-06-14-DROP-CUSTODIAL-ELIMINATE-STAKED). After CONNECTED, a user acquires entitlements via co-equal branches — fiat purchase (Powch `create_checkout_session`, priced by Cloud `price_catalogue_purchase`); crypto purchase has no rail yet (the CRYPTO_PURCHASE screen says so and calls nothing). Feature access is then an entitlement query (`verify_community_membership` / `verify_subscription`), never a login state.
 
 ```mermaid
 flowchart LR
