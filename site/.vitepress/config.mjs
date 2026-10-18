@@ -181,10 +181,6 @@ export default defineConfig({
                             "link": "/services/cloud/api-reference"
                       },
                       {
-                            "text": "Crypto Payments",
-                            "link": "/services/cloud/crypto-payments"
-                      },
-                      {
                             "text": "DeSciX Backend",
                             "link": "/services/cloud/index"
                       },

@@ -217,7 +217,7 @@ apiFront.js
 
 ### App Purchase Gating (V2)
 
-In V2, app and role purchases use the **pure DEX model**. Users pay with USDC/USDT from their own wallet (via Powch). The backend validates eligibility and records entitlements; payment flows through Powch/on-chain, not custodial balance. See [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md) and [crypto-payments](crypto-payments.md).
+In V2, app and role purchases use the **pure DEX model**. Users pay with USDC/USDT from their own wallet (via Powch). The backend validates eligibility and records entitlements; payment flows through Powch/on-chain, not custodial balance. See [Powch: DeFi Banking + SSO](../../architecture/powch-defi-sso.md).
 
 ## Related Documentation
 

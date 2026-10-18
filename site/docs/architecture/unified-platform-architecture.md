@@ -137,16 +137,14 @@ Paths:
   airdrop PK → `descix_accept_tos` verifies the EIP-191 signature and calls
   `confirm_wallet_any_registered_token` (any-token gate). Gate PASS writes a
   `pending_migrations` row; gate FAIL rejects without mutating the user record.
-- **Buy with Card** → `FiatStubScreen`, a real fiat purchase rail:
-  reached only after the user is CONNECTED, it calls the canonical
-  `create_stripe_checkout_session` rail (`PowchNetworkAPI.createStripeCheckoutSession`)
-  and redirects to hosted Stripe Checkout. The webhook → `settleConfirmedFunds` →
-  `batchUpdateBalances` mint delivers the community token to the user's master wallet.
-- **Buy with Crypto** → `CryptoStubScreen`, a real crypto purchase rail:
-  reached only after CONNECTED, it calls `create_crypto_quote`
-  (`PowchNetworkAPI.createCryptoQuote`) to return a fixed-price quote + treasury deposit
-  address. Full settlement (deposit detection → chain-watcher → mint) is deferred to the
-  deployed phase (CryptoAPIs caller-IP ban blocks the local/dev chain-watcher egress).
+- **Buy with Card** → `FiatStubScreen`, the fiat purchase rail:
+  reached only after the user is CONNECTED, it calls Powch `create_checkout_session`
+  (`PowchNetworkAPI.createCheckoutSession`, priced by Cloud `price_catalogue_purchase`,
+  `purchase_type` `community_token`) and redirects to hosted Stripe Checkout. Powch's Stripe
+  webhook hands the event to Cloud `settle_confirmed_funds_from_powch` → `settleConfirmedFunds`
+  → `batchUpdateBalances` mint delivers the community token to the user's master wallet.
+- **Buy with Crypto** → `CryptoStubScreen`: there is no crypto purchase rail; the screen
+  says "Crypto purchase is not available yet; buy with a card." and calls nothing.
 
 Restructured AuthFlowController state machine (new-user path):
 `CHECK_SESSION → PROMPT_TYPE → AIRDROP_ONBOARDING_CHOICE → CREATE_PASSKEY_BLOB

@@ -84,7 +84,7 @@ stateDiagram-v2
 | `PROMPT_TYPE` | UI | PowchMainView — returning vs new user. NEW branch triggers `_prefetchRegistration` (Chunk 1) and routes to AIRDROP_ONBOARDING_CHOICE. |
 | `AIRDROP_ONBOARDING_CHOICE` | UI | OnboardingEntryChoice — airdrop / fiat / crypto / (optional SKIP in DEV). AIRDROP and SKIP both route directly to CREATE_PASSKEY_BLOB (passkey-first). |
 | `FIAT_PURCHASE` | UI | FiatStubScreen (B1 stub) |
-| `CRYPTO_PURCHASE` | UI | CryptoStubScreen (B1 stub) |
+| `CRYPTO_PURCHASE` | UI | CryptoStubScreen: 'Crypto purchase is not available yet; buy with a card.' (no call) |
 | `TRY_UNLOCK` | action | PowchData.unlock(); on success → CHECK_EMAIL_CARD; on error → UNLOCK_FAILED |
 | `UNLOCK_FAILED` | UI | UnlockFailedView — Create New Account or Back. CREATE triggers `_prefetchRegistration` + → CREATE_PASSKEY_BLOB |
 | `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (uses cached registrationOptions from Chunk 1 when available) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK |

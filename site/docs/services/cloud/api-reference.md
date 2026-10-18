@@ -7,7 +7,6 @@ This document catalogs all backend commands and their guest access status for co
 **GUEST users** (unauthenticated) can:
 - Browse public/promoted communities (read-only)
 - View community and app details (read-only)
-- Initiate anonymous payment flows
 - Register new accounts
 
 **Backend entitlement checks remain authoritative** – frontend UI gating is for UX only, not security.
@@ -24,8 +23,6 @@ This document catalogs all backend commands and their guest access status for co
 | `list_apps_for_community` | Browse apps in community | `fetchAppsForCommunity()` | Read-only app listing |
 | `get_token_contract_addresses` | Get token contract info | `getTokenContractAddresses()` | Read-only contract addresses |
 | `fetch_my_purchases` | Get user's communities/apps | `fetchMyCommunitiesAndApps()` | Returns featured communities for GUEST |
-| `create_stripe_checkout_session` | Initiate Stripe payment | `initiateStripeCheckout()` | Anonymous payment flow |
-| `get_crypto_deposit_info` | Get crypto deposit info | `getCryptoDepositInfo()` | Anonymous payment flow |
 
 ### AUTHENTICATION REQUIRED Commands
 
@@ -46,6 +43,7 @@ This document catalogs all backend commands and their guest access status for co
 | `verify_wallet_for_mcp` | Verify wallet for MCP | N/A | AUTHENTICATED |
 | `verify_subscription` | Verify subscription | N/A | AUTHENTICATED |
 | `process_deep_link` | Process referral link | `validateReferral()` | AUTHENTICATED |
+| `price_catalogue_purchase` | Price a checkout from the purchase catalogue | N/A (Powch `create_checkout_session` calls it as the buyer) | AUTHENTICATED |
 
 ### ADMIN/DEVELOPER ONLY Commands
 
