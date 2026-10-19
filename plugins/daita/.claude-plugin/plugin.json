@@ -2,5 +2,8 @@
   "name": "daita",
   "description": "DeSciX root community — guided setup, then cited answers from community knowledge bases over the DeSciX connector.",
   "version": "0.1.0",
-  "author": { "name": "DeSciX" }
+  "author": {
+    "name": "DeSciX"
+  },
+  "license": "SEE LICENSE IN LICENSE.md"
 }
