@@ -2,3 +2,11 @@ node_modules/
 site/node_modules/
 site/dist/
 site/.vitepress/cache/
+# DeSciX: workspace.json (v3, repo facts only), manifests and provenance are tracked; wallet and sync-state are per-developer and never tracked.
+.descix/*
+!.descix/workspace.json
+!.descix/manifests/
+!.descix/kb-provenance.json
+!.descix/site-provenance.json
+.descix/wallet.json
+.descix/sync-state/
