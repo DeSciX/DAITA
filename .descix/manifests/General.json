@@ -1,0 +1,15 @@
+{
+  "kb_name": "General",
+  "sync_mode": "local",
+  "publish_tier": "P",
+  "_purpose": "daita-docs/General is the platform's PUBLIC docs knowledge base, synced from the built docs dist in site/docs (the output of DeSciX/scripts/build-docs-dist.mjs, whose input manifest is the one owner of what is public). Every file under site/docs is public by construction; publish_tier P runs the deny-lint on every sync.",
+  "sources": [
+    {
+      "path": "site/docs",
+      "ref": "main",
+      "tier": 1,
+      "doc_type": "documentation",
+      "doc_class": "guide"
+    }
+  ]
+}
