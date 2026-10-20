@@ -29,18 +29,18 @@ Every quoted output below is what the CLI printed on a real run against the refe
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix <command>
+npx -y -p @descix/cli@4.1.0 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "4.0.0" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "4.1.0" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 
-**Verify:** `npx -y -p @descix/cli@4.0.0 descix --version` prints `4.0.0`.
+**Verify:** `npx -y -p @descix/cli@4.1.0 descix --version` prints `4.1.0`.
 
 ## 3. Pin production, then sign in
 
@@ -53,7 +53,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@4.0.0 descix config init --env prod
+npx -y -p @descix/cli@4.1.0 descix config init --env prod
 ```
 
 ```
@@ -73,7 +73,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix login
+npx -y -p @descix/cli@4.1.0 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -92,7 +92,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix whoami
+npx -y -p @descix/cli@4.1.0 descix whoami
 ```
 
 ```
@@ -112,7 +112,7 @@ root. Run `app init` **from the repo root**, in a checkout that is not inside an
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix app init -a <app_id>
+npx -y -p @descix/cli@4.1.0 descix app init -a <app_id>
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -134,7 +134,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix app init -a <name> -c <community>
+npx -y -p @descix/cli@4.1.0 descix app init -a <name> -c <community>
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -177,7 +177,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@4.1.0 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -200,7 +200,7 @@ npx -y -p @descix/cli@4.0.0 descix app set-site -a <app_id> --static site
 Then, from the repo root or any directory below it:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix serve
+npx -y -p @descix/cli@4.1.0 descix serve
 ```
 
 `descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
@@ -255,8 +255,8 @@ inside the shell with sign-in, point THIS app's static route at them for the ses
 the tracked config back. From the app's own checkout, with the scratch directory beside it:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix app set-site -a <app_id> --static ../<dir>
-npx -y -p @descix/cli@4.0.0 descix serve
+npx -y -p @descix/cli@4.1.0 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@4.1.0 descix serve
 ```
 
 Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
@@ -303,6 +303,46 @@ if (document.fullscreenEnabled) {
 }
 ```
 
+`DeSciX.view.set()` returns the mode you asked for even when no shell is listening, so its return
+value never tells you the layout moved. `requestView(mode, { fallback })` does: it finds the shell
+that hosts your page at any frame depth, asks it for `mode` (or for `fallback` when the shell does
+not offer `mode`), and returns `{ outcome, mode, requested, bridge, reason }`. `requestView` needs
+`@descix/app-sdk` 0.5.0 or later.
+
+From the npm module:
+
+```js
+import { requestView, VIEW_OUTCOMES } from '@descix/app-sdk';
+
+const r = requestView('NoChrome', { fallback: 'CodeSite' });
+if (r.outcome !== VIEW_OUTCOMES.REQUESTED) console.info(r.outcome, r.bridge, r.reason);
+```
+
+From the plain script, the `DeSciXAppSDK.js` that `descix site init` copies into your site:
+
+```html
+<script src="DeSciXAppSDK.js"></script>
+<script>
+  const r = DeSciX.requestView('NoChrome', { fallback: 'CodeSite' });
+  if (r.outcome !== DeSciX.VIEW_OUTCOMES.REQUESTED) console.info(r.outcome, r.bridge, r.reason);
+</script>
+```
+
+`DeSciX.VIEW_MODES` and `DeSciX.VIEW_OUTCOMES` are the same lists the npm module exports.
+
+| `outcome` | `mode` | What happened |
+|---|---|---|
+| `requested` | the asked mode | a listening shell set it |
+| `fallback` | your fallback | the shell's `view.MODES` lacks the asked mode; it set your fallback |
+| `unoffered` | `null` | nothing was set: no shell (`bridge: 'standalone'`); a framed page with no readable shell bus, a cross-origin shell included (`bridge: 'embedded-no-bridge'`); a shell with no view member or no listening host; or a shell that offers neither the mode nor the fallback |
+| `view-no-modes` | `null` | you gave a fallback and the shell publishes no `view.MODES` to choose by |
+| `set-threw` | `null` | the shell's `view.set()` threw; `reason` carries its message |
+
+`requestView` never throws because of where your page runs. It throws for a mode or fallback that
+is not one of the four views (`requestView('FullScreen')` is "not a view"), for a fallback equal
+to the mode, and, with `err.code === 'VIEW_CONTRACT_VIOLATED'`, for a shell that breaks the view
+contract.
+
 **Verify** from the root, `https://localhost:<Port>/`, signed in: the shell's top bar and chat
 are gone and your app fills the tab; a tap on the button takes the page full screen on Android
 or desktop. Never verify views or full screen at `/p/<app_id>`: that frame has no shell, so
@@ -328,15 +368,15 @@ Three rules that save you an afternoon:
 - **Only committed files sync.** The sync takes each file's content at the manifest `ref`; a
   tracked file edited but not committed is silently treated as unchanged. Sync from a clean,
   pulled `main` (`git status --short` empty), or pass `--ref <branch>` for a branch.
-- **A manifest for a KB the platform does not know is refused.** Register a new KB first:
-  `descix app init -a <app_id> --kb <kb_name>` (from the repo root, as always).
+- **A manifest for a KB the platform does not know is refused**, dry run included. The refusal
+  names the fix on a `Fix: run` line: `descix kb create -a <app_id> --kb <kb_name>`.
 - **`--dry-run` exits 1 when there is drift. That is normal before a sync** — read the `Drift:`
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@4.0.0 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@4.0.0 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@4.1.0 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@4.1.0 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@4.1.0 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -344,10 +384,26 @@ and the plan (`Would-upsert chunks: <n>`, `Would-delete refs: <n>`). The real sy
 changed and purges what you deleted; a plain re-run is always safe. `descix kb list -a <app_id>`
 shows every KB with its live vector count (`Source` column `live`).
 
+**A second KB on an existing app** is created with `descix kb create`, which needs
+`@descix/cli` 4.1.0 or later:
+
+```bash
+npx -y -p @descix/cli@4.1.0 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
+```
+
+It needs the app's owner, or an app, community or platform admin. A KB that already exists is a
+refusal (`KB_EXISTS`, exit 1), never a success; `descix kb list -a <app_id>` shows the app's KBs.
+On success it prints the next step: add `.descix/manifests/<kb_name>.json`, then
+`descix kb corpus sync -a <app_id> -k <kb_name>`.
+
+`app init --kb` never creates a KB on an existing app. There, `--kb` names the existing KB this
+repo syncs, and a name the app does not have is refused with the `descix kb create` command that
+would make it. Only `app init -c`, which creates the app, creates its first KB.
+
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@4.1.0 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -420,30 +476,54 @@ never breaks the app.
 }
 ```
 
-| Field | Rule |
-|---|---|
-| `title` | required |
-| `description` | required, under 160 characters |
-| `icon` | favicon path |
-| `og_image` | the share image, **1200×630**, under **1 MB** |
-| `twitter_card` | optional, default `summary_large_image` |
-| `apple_touch_icon` | optional |
+| Field | Required | Value |
+|---|---|---|
+| `title` | yes | a non-empty string |
+| `description` | yes | a non-empty string |
+| `icon` | no | the favicon path; a non-empty string when present |
+| `og_image` | no | the share image path; a non-empty string when present |
+| `twitter_card` | no | a non-empty string when present; absent means `summary_large_image` |
+| `apple_touch_icon` | no | the home-screen icon path; a non-empty string when present |
+
+The top level must be a JSON object. Values are trimmed, so a value of only spaces is empty. Keys
+outside the table are ignored. Neither the CLI nor the edge checks a length, an image size or a
+path shape; card renderers show a 1200×630 `og_image` best.
 
 All paths are **bundle-relative** (resolved against your site's storage path). Add `share.json`
 **and** its image paths to the `site.json` `include` list, or they do not deploy.
+
+**The upload gate.** From `@descix/cli` 4.1.0, `descix site upload` checks a `share.json` at the
+top of the upload set against this table before it asks for a deploy token, so `--dry-run`
+refuses too. A file that fails refuses the whole upload, nothing is uploaded, and the command
+exits 1, naming the file and the field:
+
+```
+  Upload failed: site upload REFUSED: /home/you/my-app/site/share.json does not meet the share.json contract (@descix/app-sdk/share):
+  share.json: icon must be a string; got a number
+Nothing was uploaded. Fix share.json, or leave it out of the site, then upload again.
+```
+
+A missing required field reads `share.json: title is required (a non-empty string)`; a present
+optional field that is empty reads `share.json: og_image is empty; it must be a non-empty string`.
+
+**Build tooling imports the contract.** `@descix/app-sdk/share` (app-sdk 0.5.0) exports
+`SHARE_CONTRACT` (the field table above), `parseShareJson(text)`, `validateShareJson(obj)` and
+`SHARE_JSON_FILE`. Both functions return the full bag (absent optional fields `null`,
+`twitter_card` defaulted) or throw the same field-named error the upload prints. A theme or
+generator that writes `share.json` imports them instead of restating these rules.
 
 **Timing on a first upload:** a missing `share.json` is cached at the edge for **300 seconds**.
 If the first request to your host arrived before your first upload of the file, links keep the
 generic head for up to 5 minutes — wait it out; nothing is wrong.
 
-**Verify locally:** `curl -sk https://localhost:5173/p/<app_id>/share.json` returns your JSON.
+**Verify locally:** `curl -sk https://localhost:<Port>/p/<app_id>/share.json` returns your JSON.
 
 ## 8. Deploy the site
 
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@4.1.0 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -465,7 +545,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix site upload -a <app_id>
+npx -y -p @descix/cli@4.1.0 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -478,7 +558,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@4.1.0 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -544,7 +624,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@4.1.0 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -555,7 +635,7 @@ For everything this page does not cover — backend commands, payments, model tu
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@4.0.0 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@4.1.0 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -565,15 +645,15 @@ page, is the whole handbook; when neither answers, apply the wall rule at the to
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@4.0.0 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@4.0.0 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@4.0.0 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@4.0.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
-npx -y -p @descix/cli@4.0.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@4.0.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@4.0.0 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
-npx -y -p @descix/cli@4.0.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@4.0.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@4.0.0 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@4.0.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@4.1.0 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@4.1.0 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@4.1.0 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@4.1.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
+npx -y -p @descix/cli@4.1.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@4.1.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
+npx -y -p @descix/cli@4.1.0 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
+npx -y -p @descix/cli@4.1.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@4.1.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@4.1.0 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@4.1.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
