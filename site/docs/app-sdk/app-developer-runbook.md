@@ -158,11 +158,23 @@ provenance files are deployable config and stay tracked.
 - **Every checkout is a sibling, never nested.** A checkout inside another DeSciX workspace is
   not a supported layout. `app init` refuses to run there (`This directory is nested inside
   another DeSciX workspace.`); `init`, `set-site` and `serve` run there without refusing.
-- **Never copy `.descix/workspace.json` or `.descix/wallet.json` into another checkout.** A
-  copied workspace file is accepted silently: that directory becomes a second workspace for the
-  same app id, it shadows any workspace above it for every command run inside it, and it
-  bypasses the `app init` refusal. Give each checkout its own `app init` and `login`; to preview
-  another directory's files, use §5.1.
+- **A clone or a git worktree of your app's repo is its own workspace for the same app.** Its
+  root is the directory that holds its `.descix/workspace.json`, wherever the checkout sits, so
+  it needs no `app init`. It needs its own `descix login`: the credential is read from that
+  root's `.descix/wallet.json`, which git never carries.
+- **Never copy `.descix/workspace.json` or `.descix/wallet.json` into a different checkout** — a
+  directory that is not a checkout of this repo. A copied workspace file is accepted silently:
+  that directory becomes a second workspace for the same app id, it shadows any workspace above
+  it for every command run inside it, and it bypasses the `app init` refusal. To preview another
+  directory's files, use §5.1.
+- **Never commit a rewritten `workspaceRoot`.** Every command that writes `workspace.json`
+  (`app init`, `app set-site`, `app set-port`, `config` setters) also writes `workspaceRoot` as
+  the absolute path of the checkout it ran in. Commands take the root from where the file sits,
+  never from that field, so in a clone or worktree the write shows as
+  ` M .descix/workspace.json` with only that line changed; restore it with
+  `git checkout -- .descix/workspace.json` instead of committing it. When the same write also
+  carries a change you mean to keep (a `set-site` in a clone), put the `workspaceRoot` line back
+  to its committed value by hand and commit the rest.
 
 ```bash
 cat >> .gitignore <<'EOF'
@@ -505,9 +517,19 @@ Create it first with `descix kb create` (§6).
 **Verify:** the `list_apps_for_community` read above shows `"knowledgebase_name": "<kb_name>"` for
 your app.
 
-The chat's voice is that KB's system instructions. `descix app sync-assets` writes
-`assets/system_instructions.md` to the KB named by `-k`, and `-k` defaults to `General`, so name
-the default KB explicitly:
+The chat's voice is the default KB's system instructions; the app has no persona apart from
+them. Read them with:
+
+```bash
+npx -y -p @descix/cli@4.2.0 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
+```
+
+`.message.app.default_prompt` is the default KB's system instructions, and
+`.message.app.agent_instructions.source` names that KB (`"kb:<kb_name>"`). When the pointer
+names a KB the app does not have, `default_prompt` is `null` and `source` is `null`.
+
+`descix app sync-assets` writes `assets/system_instructions.md` to the KB named by `-k`, and `-k`
+defaults to `General` whatever the app's default is. Always pass `-k` with the default KB's name:
 
 ```bash
 npx -y -p @descix/cli@4.2.0 descix app sync-assets -a <app_id> -k <kb_name>
