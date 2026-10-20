@@ -118,13 +118,15 @@ npx -y -p @descix/cli@4.2.0 descix app init -a <app_id>
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
 the command is idempotent. Exactly what it touches:
 
-- writes `.descix/workspace.json` `env.app` (appId, communityId, default kbId) — THE app this
-  repo holds; a repo that already holds a different app is refused loudly;
+- writes `.descix/workspace.json` `env.app` (appId, communityId, kbId) — THE app this
+  repo holds; a repo that already holds a different app is refused loudly. `kbId` is the KB this
+  repo syncs; it does not choose the KB the shell's chat answers from (§6.1);
 - creates `site/`, `microservice/`, `assets/` — a no-op for any directory that already exists;
 - writes `assets/system_instructions.md` and `assets/app_description.md` **only if absent** —
   existing files are never overwritten;
 - copies **no** site scaffold into an existing `site/`;
-- makes one idempotent call that guarantees the app's default knowledge base exists;
+- creates **no** knowledge base: an app with one KB gets it as `kbId`; an app with several
+  refuses until `--kb <kb_name>` names one of them; a `--kb` the app does not have is refused;
 - agent-instruction files (`CLAUDE.md` and editor-rules files): a file that does not carry the
   CLI's own BOOTSTRAP marker is left alone.
 
@@ -139,8 +141,10 @@ npx -y -p @descix/cli@4.2.0 descix app init -a <name> -c <community>
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
 (`-s <short>` overrides the suffix; no hyphens in the short name). This creates the platform
-record, writes `env.app`, scaffolds the three directories, and creates the default KB
-(`--kb <name>`, default `General`). `descix app list` then shows the app, and
+record with its default KB `General`, writes `env.app`, and scaffolds the three directories.
+`--kb <kb_name>` names the KB this repo syncs (default `General`); a name other than `General`
+creates that KB beside `General`, and the app's default stays `General` until you repoint it
+(§6.1). `descix app list` then shows the app, and
 `descix purchases` shows everything you own.
 
 ### Repository hygiene
@@ -346,10 +350,67 @@ is not one of the four views (`requestView('FullScreen')` is "not a view"), for 
 to the mode, and, with `err.code === 'VIEW_CONTRACT_VIOLATED'`, for a shell that breaks the view
 contract.
 
+**The view belongs to the shell, not to a page.** The shell does not see your site navigate
+inside its frame: the view your face started in (`default_view`) or the last view your site
+asked for stays in effect on every page of your site, and goes back to the starting view only
+when the user switches to another app. An app opened from the store at `https://descix.net`
+starts in `SplitView` whatever its `share.json` says. So a page that must be chat-free asks on
+load, and a page that wants the chat beside it asks for that:
+
+```js
+// a reading page: the whole frame, no chat panel
+requestView('CodeSite');
+// a page that wants the chat beside it
+requestView('SplitView');
+```
+
 **Verify** from the root, `https://localhost:<Port>/`, signed in: the shell's top bar and chat
 are gone and your app fills the tab; a tap on the button takes the page full screen on Android
 or desktop. Never verify views or full screen at `/p/<app_id>`: that frame has no shell, so
 there is no chrome to drop.
+
+### 5.3 Your page and the shell's chat
+
+The shell's chat panel (in `SplitView` and `Chat`) sends each turn with your app's id, the
+user's words, its own conversation thread and any staged attachment. It names no knowledge base,
+so it answers from your app's default KB (§6.1) under that KB's system instructions. It sends
+nothing about your page — not the route, the document on screen, the selection, or the sources
+the page shows. `@descix/app-sdk` 0.6.0 provides no surface for a page to add page context to
+the chat panel's turns or to choose which KBs the chat panel searches.
+
+What crosses between your page and the shell, as built in `@descix/app-sdk` 0.6.0:
+
+| Direction | Surface | What it carries |
+|---|---|---|
+| chat → page | `window.DeSciX_Actions` in your page | in `SplitView`, a reply that ends with a fenced block tagged `json:call:<name>` whose body is a JSON object shows a Run button; on the user's click the shell calls `DeSciX_Actions.<name>(args)` and sends the return value (or the error) back into the conversation as the next turn, one metered turn. A body that is not valid JSON shows no button |
+| page → chat | `DeSciX.chat.sendMedia(media, { note, disposition })` | one image or video, with `note` as text beside it; `disposition: 'stage'` (default) rides the user's next turn, `'send'` submits a turn now. Text alone cannot be sent |
+| page → model, its own thread | `DeSciX.call('ask_question_to_app', params)` | a question your page asks itself, answered on a thread your page holds; it is not the chat panel's thread and the answer does not appear in the panel |
+
+The model writes a `json:call:<name>` block only when your KB's system instructions teach it the
+names and arguments. `egpt-godsworld` (public, `DeSciX/egpt-godsworld`) is a worked example of
+that app's own code: `site/app-assets/maxi-hands.js` assigns `window.DeSciX_Actions` from one
+table and renders the same table into the KB's instructions, and `site/app-assets/maxi-ask.js`
+asks its own questions with `DeSciX.call`.
+
+**Your page's own questions.** `DeSciX.call` comes from the `DeSciXAppSDK.js` in your site
+(§5.2). It needs a signed-in user, throws when no shell is above the page, and each call is one
+metered turn on the reader's AI credits:
+
+```js
+const r = await DeSciX.call('ask_question_to_app', {
+  app_id: '<app_id>',
+  user_input: 'Which sources does this chapter cite for its second claim?',
+  knowledgebase_names: ['<kb_name>', '<second_kb_name>'],   // ['*'] searches every KB of the app
+  // previous_interaction_id: r.interaction_id from the last answer, to continue the thread
+});
+// r.response (the answer), r.sources (its citations), r.interaction_id (the thread)
+```
+
+The first name in `knowledgebase_names` is the primary KB, whose system instructions shape the
+answer; omit the field to search only the app's default KB. `file_id` and `doc_ids` add a whole
+document to the turn, and a source synced by `kb corpus sync` has no whole document, so neither
+pins a corpus source: `doc_ids` naming one refuses the turn with
+`No whole-document object for 'corpus:<sha>' (chunk-only corpus source)`.
 
 ## 6. Knowledge bases
 
@@ -414,6 +475,45 @@ The reply's `📚 Sources:` line reads `<file> [ID: corpus:<sha>]`, and `<sha>` 
 `git rev-parse` output. Measured on the reference app: the answer cited
 `getting-started.md [ID: corpus:255bc8befe4c8b9ec83412931e4034705aa30b9d]`, equal to
 `git rev-parse main:kb/General/getting-started.md`. (Chat draws on your AI-credit balance; `descix credits buy --usd <10|25|100|200>` prints a Stripe Checkout URL to top it up, and patronage from $20 is in the Powch Buy menu.)
+
+### 6.1 The app's default knowledge base
+
+The shell's chat panel and `descix chat` without `--kb` answer from ONE knowledge base: the app's
+default, a pointer the platform holds on the app record (`knowledgebase_name`). It is not
+`env.app.kbId` in your workspace. A new app points at `General`. Read every app's pointer in a
+community:
+
+```bash
+npx -y -p @descix/cli@4.2.0 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
+```
+
+Each app's entry carries `"knowledgebase_name": "<kb_name>"`; `descix kb list -a <app_id>` lists
+the KBs the app has. When the pointer names a KB the app does not have, every turn of the chat
+panel and every `descix chat` without `--kb` is refused with `KB_NOT_FOUND`, naming the pointer and
+the KBs the app has.
+
+The app's owner, or an app, community or platform admin, repoints it to a KB the app already has:
+
+```bash
+npx -y -p @descix/cli@4.2.0 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
+```
+
+A KB the app does not have is refused and nothing is written:
+`Cannot repoint app '<app_id>' to knowledge base '<kb_name>': that knowledge base does not exist on this app.`
+Create it first with `descix kb create` (§6).
+
+**Verify:** the `list_apps_for_community` read above shows `"knowledgebase_name": "<kb_name>"` for
+your app.
+
+The chat's voice is that KB's system instructions. `descix app sync-assets` writes
+`assets/system_instructions.md` to the KB named by `-k`, and `-k` defaults to `General`, so name
+the default KB explicitly:
+
+```bash
+npx -y -p @descix/cli@4.2.0 descix app sync-assets -a <app_id> -k <kb_name>
+```
+
+The same command writes `assets/app_description.md` and `assets/icon.png` to the app record.
 
 ## 7. The site bundle: allowlist, base path, share card
 
