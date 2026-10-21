@@ -53,9 +53,9 @@ descix mcp execute --tool <name> --params '<json>'   # run one tool
 
 ## Local Proxy and Routing
 
-Ports come from `.descix/workspace.json` — `env.platform` for the platform app and `env.products[]` for every other app, each with its own `site.port` and `microservice.port`. The local gateway mirrors production routing so you develop against the same paths production uses. For the route table it actually builds, and for how it resolves its own port, read [platform-runtime-mental-model](../architecture/platform-runtime-mental-model.md) §5 — it is generated from `createViteProxyConfig.js` rather than restated here.
+Ports come from `.descix/workspace.json`: the gateway's own `env.gateway.port`, and each app repo's `env.app.site` and `env.app.microservice.port`. The local gateway mirrors production routing so you develop against the same paths production uses. For the route table it actually builds, and for how it resolves its own port, read `agent-assets/reference/local-dev.md` (§2 and §3) in the published `@descix/cli` package.
 
 ## Related
 
 - [MCP mesh](../services/mcp-mesh.md) – Semantic discovery, tool set
-- [Platform runtime mental model](../architecture/platform-runtime-mental-model.md) – `descix serve` as LB replicator, routing table, port resolution
+- [Serve & Launch Modes](serve-and-launch-modes.md) – What `descix serve` is and which mode to use

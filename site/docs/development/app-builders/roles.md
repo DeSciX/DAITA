@@ -29,13 +29,7 @@ Platform roles are created by the admin bootstrap script and apply system-wide.
 
 ### Creating Platform Roles
 
-Platform roles are created during initial bootstrap. From the `DeSciX_Cloud/cloud` directory:
-
-```bash
-node admin/bootstrap.js create-roles
-```
-
-This creates all platform-level roles in Firestore under `Role/PLATFORM/descix/{roleId}`.
+Platform roles are created by the platform operator when an environment is bootstrapped; an app builder never creates them. They are stored in Firestore under `Community/daita/Roles/{roleId}`.
 
 ## Community Roles
 

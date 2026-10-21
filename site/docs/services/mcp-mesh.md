@@ -47,7 +47,7 @@ descix tell-me-how --scope discovery "what tokenomics tools exist"
 ## Advertised Tool Surface
 
 The set advertised at the MCP handshake is **DISCOVERY-CORE**, owned by
-`DISCOVERY_CORE_TOOL_NAMES` in `DeSciX_Core/descix-platform-api/src/mcp-tools/nativeTools.js`.
+`DISCOVERY_CORE_TOOL_NAMES` in `@descix/platform-api/mcp-tools` (`src/mcp-tools/nativeTools.js` in the published package).
 Its membership is ratified — do not add or remove a name without a CEO ruling. Call
 `describeDiscoveryCoreFence()` in that same module for the fence's own statement of its
 contract, derived from the constant so it cannot drift from what is filtered.
@@ -85,9 +85,8 @@ descix tell-me-how "<question>"  # discover platform tools
 
 ## MCP Server
 
-The MCP server runs in the CLI; it uses the CLI's HTTP-only api-client for all backend operations. See [DeSciX_Core/descix-cli/agent-assets/reference/mcp-integration.md](../../DeSciX_Core/descix-cli/agent-assets/reference/mcp-integration.md).
+The MCP server runs in the CLI; it uses the CLI's HTTP-only api-client for all backend operations. See `agent-assets/reference/mcp-integration.md` in the published `@descix/cli` package.
 
 ## Related
 
 - [service-mesh-and-proxying](service-mesh-and-proxying.md)
-- [api-and-command-routing](api-and-command-routing.md)

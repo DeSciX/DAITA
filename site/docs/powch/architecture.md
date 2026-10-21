@@ -28,8 +28,8 @@ A WebAuthn ceremony yields only attestation (create) or assertion (get). The cli
 
 ### Implementation Mapping
 
-- **Client:** [PowchData.js](../../packages/client-core/src/PowchData.js) SyncManager, [vaultOps.js](../../packages/client-core/src/vaultOps.js) `deriveCloudKeyFromPRF`
-- **Backend:** [powchCommands.js](../../../DeSciX_Cloud/microservice/services/commandHandlers/powchCommands.js) (powch_register_finish, powch_login_finish), [Powch service](../../microservice/src/index.js) (powch_vault_get, powch_vault_put)
+- **Client:** Powch client-core: `PowchData` SyncManager, `vaultOps` `deriveCloudKeyFromPRF`
+- **Backend:** the Powch microservice handles `powch_register_finish`, `powch_login_finish`, `powch_vault_get` and `powch_vault_put`
 
 ---
 
@@ -91,7 +91,7 @@ The passkey syncs via the OS (iCloud Keychain, Google Password Manager). CloudKe
 
 ### Cold Storage (Paper Backup)
 
-Optional: CloudKey can be exported as a BIP-39 mnemonic for long-term cold storage. Implementation: `cloudKeyToMnemonic()` in [vaultOps.js](../../packages/client-core/src/vaultOps.js). If all passkeys are lost, the mnemonic restores the master wallet.
+Optional: CloudKey can be exported as a BIP-39 mnemonic for long-term cold storage. Implementation: `cloudKeyToMnemonic()` in Powch client-core's `vaultOps`. If all passkeys are lost, the mnemonic restores the master wallet.
 
 ### Vault Deactivation vs Credit Card Deauthorization
 

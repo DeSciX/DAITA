@@ -100,5 +100,5 @@ At FINISH, AuthFlowController resolves PII from the specified cards via `PowchDa
 
 ## Related Documents
 
-- [powch-flow-auth.md](./powch-flow-auth.md) — Auth flow state machine
+- [flow-controllers.md](../flow-controllers.md#authflowcontroller) — Auth flow state machine
 - [data-security-architecture.md](../data-security-architecture.md) — Tier3Store and data model

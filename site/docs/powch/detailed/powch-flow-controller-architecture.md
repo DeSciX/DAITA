@@ -8,7 +8,7 @@ The **Headless Flow Controller** rearchitecture decouples business logic from th
 ## 2. Core Components
 
 ### 2.1 The `BaseFlowController` (Headless)
-A vanilla JavaScript class that manages flow logic independent of React. Implemented in `packages/react/src/flows/BaseFlowController.js`.
+A vanilla JavaScript class that manages flow logic independent of React. Implemented in Powch's React layer.
 
 *   **`data`**: A non-reactive data store for the flow's lifecycle (request-scoped; merged with stepData on transition).
 *   **`currentStep`**: The pointer to the current state in the flow's script.
@@ -50,7 +50,7 @@ The Modal is a "Dumb Stage" that prioritizes the active flow controller when one
 
 *   When **`visualState`** is set (from the active flow controller's `onUIChange`), the modal renders `ViewRegistry[visualState.view]` with `visualState.data` as props.
 *   It passes **`onNext`**, **`onCancel`**, **`onError`** to the view: these call `activeFlow.send(...)` or `activeFlow.reject(...)` so the view can drive the controller without touching the protocol machine.
-*   When no flow controller is active, view changes are driven by the View Machine via **viewRouter** and **triggerViewChange** (single mutex); the resulting **currentView** (e.g. tab + flow) is reflected in the `flowState` path so the modal's `switch(flowState)` renders the correct view (e.g. AUTH_MAIN, SIGN_CONFIRM). See [PWA React Developer's Guide](../../docs/pwa-react-developer-guide.md).
+*   When no flow controller is active, view changes are driven by the View Machine via **viewRouter** and **triggerViewChange** (single mutex); the resulting **currentView** (e.g. tab + flow) is reflected in the `flowState` path so the modal's `switch(flowState)` renders the correct view (e.g. AUTH_MAIN, SIGN_CONFIRM). The DeSciX PWA React Developer's Guide (App SDK section of these docs) describes the pattern.
 
 ## 3. Context and Communication
 
@@ -76,17 +76,12 @@ The controller architecture enforces the visibility lock by design. A flow can o
 
 ---
 
-## 5. File Structure (As-Built)
+## 5. Flow Controllers (As-Built)
 
-*   `packages/react/src/flows/BaseFlowController.js`
-*   `packages/react/src/flows/AuthFlowController.js`
-*   `packages/react/src/flows/SignFlowController.js`
-*   `packages/react/src/flows/WalletConnectFlowController.js`
-*   `packages/react/src/flows/ImportFlowController.js`
-*   `packages/react/src/flows/PaymentFlowController.js`
+The flow controllers live in Powch's React layer, and each extends `BaseFlowController`: `AuthFlowController`, `SignFlowController`, `WalletConnectFlowController`, `ImportFlowController`, `PaymentFlowController`, `ClaimFlowController`, `ExportPaperBackupFlowController`, `WalletManagerFlowController`, `CardTransferController`, `OfferAcceptController` and `SwapController`.
 
 ### 5.1 Import Flow (As-Built)
-**ImportFlowController**: Trigger `POWCH_IMPORT_KEY`. Flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(card)**; no addKeyToSession or saveSession(pendingKey). See [data-security-architecture.md](../data-security-architecture.md) and [ImportFlowController.js](../../packages/react/src/flows/ImportFlowController.js).
+**ImportFlowController**: Trigger `POWCH_IMPORT_KEY`. Flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(card)**; no addKeyToSession or saveSession(pendingKey). See [data-security-architecture.md](../data-security-architecture.md).
 
 ### 5.2 Wallet Connect Flow (As-Built)
-**WalletConnectFlowController**: Trigger `POWCH_CONNECT_WALLET` (or as sub-flow from SignFlowController via `dispatchFlow(WalletConnectFlowController, options)` when user has no keys). Initial state: **SHOW_UI** (WalletConnectView; props from options: signatureMessage, startMode, instruction, isRequirement). Events from the view: `SELECT_EXISTING` → **HANDLE_EXISTING_SELECTION** (action; then back to SHOW_UI); `IMPORT_KEY` → **HANDLE_IMPORT** (action; then SHOW_UI); `GENERATE_WALLET` → **HANDLE_GENERATE** (action; then SHOW_UI); `LOAD_FROM_POWCH` → **ACQUIRE_PRF** (action; biometric login, then SHOW_UI); `CONFIRM` → **PROCESS_CONFIRMATION** (action: optional sign via PowchData signing; new keys persisted via **PowchData.saveCard(card)**; then resolve with walletAddress, walletSignature, onboardingComplete); `CANCEL` → reject. See [data-security-architecture.md](../data-security-architecture.md) for saveCard and single-entry-point pattern. See [powch-flow-wallet-connect.md](powch-flow-wallet-connect.md) and [WalletConnectFlowController.js](../packages/react/src/flows/WalletConnectFlowController.js).
+**WalletConnectFlowController**: Trigger `POWCH_CONNECT_WALLET` (or as sub-flow from SignFlowController via `dispatchFlow(WalletConnectFlowController, options)` when user has no keys). Initial state: **SHOW_UI** (WalletConnectView; props from options: signatureMessage, startMode, instruction, isRequirement). Events from the view: `SELECT_EXISTING` → **HANDLE_EXISTING_SELECTION** (action; then back to SHOW_UI); `IMPORT_KEY` → **HANDLE_IMPORT** (action; then SHOW_UI); `GENERATE_WALLET` → **HANDLE_GENERATE** (action; then SHOW_UI); `LOAD_FROM_POWCH` → **ACQUIRE_PRF** (action; biometric login, then SHOW_UI); `CONFIRM` → **PROCESS_CONFIRMATION** (action: optional sign via PowchData signing; new keys persisted via **PowchData.saveCard(card)**; then resolve with walletAddress, walletSignature, onboardingComplete); `CANCEL` → reject. See [data-security-architecture.md](../data-security-architecture.md) for saveCard and single-entry-point pattern. See [powch-flow-wallet-connect.md](powch-flow-wallet-connect.md).

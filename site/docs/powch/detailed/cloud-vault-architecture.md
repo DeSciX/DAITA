@@ -2,7 +2,7 @@
 
 This document specifies the **Cloud Vault + Deterministic CloudKey** model. CloudKey is derived from PRF + credentialId; the vault is stored in the cloud. largeBlob is no longer used for Key Object storage.
 
-**References:** [data-security-architecture.md](../data-security-architecture.md), [architecture.md](../architecture.md), [data-layer.md](../data-layer.md), [powch-flow-auth.md](./powch-flow-auth.md).
+**References:** [data-security-architecture.md](../data-security-architecture.md), [architecture.md](../architecture.md), [data-layer.md](../data-layer.md), [flow-controllers.md](../flow-controllers.md#authflowcontroller).
 
 **As-built:** No Key Object, no largeBlob. CloudKey is derived from PRF + credentialId; vault is fetched via `powch_vault_get` and put via `powch_vault_put`. Initial vault upload happens implicitly on first `saveCard()` (e.g. EMAIL card after CollectEmailView).
 

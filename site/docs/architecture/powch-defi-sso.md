@@ -25,8 +25,6 @@ Powch's payment service orchestrates:
 - **Treasury relayer**: Gas-sponsored on-chain execution
 - **P2P transfers**: Send-to-email
 
-See `DeSciX_Powch/service/src/paymentService.js` for implementation.
-
 ## Zero-Knowledge Shared Userbase
 
 - **Server never sees**: Private keys, wallet data, plaintext emails (only hashes during verification)

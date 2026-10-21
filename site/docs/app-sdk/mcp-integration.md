@@ -10,7 +10,7 @@ This document covers how AI agents interact with the DeSciX platform via MCP (Mo
 
 ## 1. Architecture Overview
 
-DeSciX operates as a **Federated MCP Service Mesh**. The `DeSciX_Cloud` backend acts as a broker that aggregates tools from all registered microservices into a unified catalog.
+DeSciX operates as a **Federated MCP Service Mesh**. The DeSciX Cloud backend acts as a broker that aggregates tools from all registered microservices into a unified catalog.
 
 **Key Innovation:** AI agents discover and invoke capabilities across the entire mesh without knowing where individual services are hosted.
 
@@ -24,7 +24,7 @@ AI Agent (Cursor/MCP Client)
    execute_remote_command
        │
        ▼
-   DeSciX_Cloud (Federated Broker)
+   DeSciX Cloud (Federated Broker)
        │
        ├──► Service 1 (Powch)
        ├──► Service 2 (SmartModel)
@@ -154,7 +154,7 @@ After `descix quickstart` (or `descix login` + `descix init` + `descix app init`
 
 ### 4.1 Federated MCP Broker
 
-`DeSciX_Cloud` aggregates tools from all registered microservices:
+The DeSciX Cloud backend aggregates tools from all registered microservices:
 
 ```
 Microservice A
@@ -164,7 +164,7 @@ Microservice A
     Registers with Core
         │
         ▼
-DeSciX_Cloud (Broker)
+DeSciX Cloud (Broker)
   └── Aggregated tools/list
         │
         ▼
@@ -416,10 +416,10 @@ cd <workspace root>
 
 ## 9. File References
 
+Paths are inside the published `@descix/cli` package. `tell_me_how` and `execute_remote_command` are served by the DeSciX Cloud backend through `/apifront`; that backend is not a published package.
+
 | Component | Path |
 |-----------|------|
-| MCP server | `DeSciX_Core/descix-cli/bin/mcp-server.js` |
-| tell_me_how Implementation | `DeSciX_Cloud/microservice/services/commandHandlers/ragCommands.js` |
-| execute_remote_command | `DeSciX_Cloud/microservice/services/apiFront.js` |
-| SERVICE_README Template | `DeSciX_Core/descix-cli/templates/scaffolds/microservice/templates/SERVICE_README_TEMPLATE.md` |
-| Workspace Config | `DeSciX_Core/descix-cli/lib/workspace-config.js` |
+| MCP server | `bin/mcp-server.js` |
+| SERVICE_README Template | `templates/scaffolds/microservice/templates/SERVICE_README_TEMPLATE.md` |
+| Workspace Config | `lib/workspace-config.js` |

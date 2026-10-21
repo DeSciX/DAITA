@@ -32,7 +32,7 @@ Google Drive → server-side pipeline → GCS → Pinecone
 
 ## 2. Core Components
 
-All core SDK logic resides in `DeSciX_Core/descix-cli/lib/core/`.
+All core SDK logic resides in `lib/core/` of the published `@descix/cli` package.
 
 ### 2.1 Hydrator (`Hydrator.js`)
 
@@ -383,18 +383,17 @@ Both modes can source content from Google Drive. The difference is:
 
 ## 9. File References
 
+Paths are inside the published `@descix/cli` package. The server-side KB processing, the Pinecone service and Drive-mode chunking run in the DeSciX Cloud service, which is not a published package.
+
 | Component | Path | Description |
 |-----------|------|-------------|
-| WorkspaceConfig | `DeSciX_Core/descix-cli/lib/workspace-config.js` | Sole configuration class |
-| GlobalConfig | `DeSciX_Core/descix-cli/lib/global-config.js` | User-level settings (~/.descix) |
-| Hydrator | `DeSciX_Core/descix-cli/lib/core/Hydrator.js` | Drive sync operations |
-| Chunker | `DeSciX_Core/descix-cli/lib/core/Chunker.js` | KB chunking |
-| Syncer | `DeSciX_Core/descix-cli/lib/core/Syncer.js` | Pinecone sync |
-| ManifestLoader | `DeSciX_Core/descix-cli/lib/core/ManifestLoader.js` | Corpus manifest loading and validation |
-| Corpus Commands | `DeSciX_Core/descix-cli/lib/commands/corpus.js` | Canonical KB corpus sync |
-| Workspace Init | `DeSciX_Core/descix-cli/lib/commands/init.js` | Workspace initialization |
-| App Init | `DeSciX_Core/descix-cli/lib/commands/appInit.js` | App record, default KB, scaffold |
-| Drive ADC | `DeSciX_Core/descix-cli/lib/google-storage-adc.js` | Google Drive API wrapper |
-| Backend KB API | `DeSciX_Cloud/microservice/services/commandHandlers/appCommands.js` | Server-side processing |
-| Pinecone Service | `DeSciX_Cloud/microservice/services/pineconeService.js` | Vector database |
-| Server Chunking | `DeSciX_Cloud/microservice/services/chunkingUtils.js` | Drive-mode chunking |
+| WorkspaceConfig | `lib/workspace-config.js` | Sole configuration class |
+| GlobalConfig | `lib/global-config.js` | User-level settings (~/.descix) |
+| Hydrator | `lib/core/Hydrator.js` | Drive sync operations |
+| Chunker | `lib/core/Chunker.js` | KB chunking |
+| Syncer | `lib/core/Syncer.js` | Pinecone sync |
+| ManifestLoader | `lib/core/ManifestLoader.js` | Corpus manifest loading and validation |
+| Corpus Commands | `lib/commands/corpus.js` | Canonical KB corpus sync |
+| Workspace Init | `lib/commands/init.js` | Workspace initialization |
+| App Init | `lib/commands/appInit.js` | App record, default KB, scaffold |
+| Drive ADC | `lib/google-storage-adc.js` | Google Drive API wrapper |

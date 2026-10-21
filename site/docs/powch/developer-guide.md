@@ -20,7 +20,7 @@ For protocol details, see [powch-state-machine.md](./detailed/powch-state-machin
 
 ## 2. Three Deployment Cases
 
-Aligned with [standalone-app-shell-and-zero-dependency-design.md](./detailed/standalone-app-shell-and-zero-dependency-design.md):
+Aligned with [app-shell-enclosure.md](./detailed/app-shell-enclosure.md):
 
 ### Case 1 – descix.net (Platform)
 
@@ -159,8 +159,6 @@ if (!shell || shell.mode !== 'standalone') {
 
 **Implication:** Powch cannot run standalone without the App Shell. The Shell provides routing, session hydration, and the DeSciX API surface.
 
-Reference [design/app-shell-integration.md](../../design/app-shell-integration.md) for the full Shell integration design.
-
 ---
 
 ## 7. Architecture Diagram
@@ -202,5 +200,5 @@ flowchart LR
 | [architecture.md](./architecture.md) | SyncManager, FlowRunner, flow contract |
 | [implementing-flows.md](./implementing-flows.md) | How to create and wire flow controllers |
 | [powch-state-machine.md](./detailed/powch-state-machine.md) | Event types and call stack |
-| [powch-flow-auth.md](./detailed/powch-flow-auth.md) | Auth flow states |
+| [flow-controllers.md](./flow-controllers.md#authflowcontroller) | Auth flow states |
 | [powch-flow-wallet-connect.md](./detailed/powch-flow-wallet-connect.md) | Wallet connect flow |

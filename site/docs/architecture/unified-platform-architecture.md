@@ -4,14 +4,13 @@
 
 This document defines the architecture for **Local Platform Development** and **Production Routing** in the DeSciX V2 platform. It unifies the development and production models by treating the "Platform" (DeSciX Store + Cloud Core) as a standard App (the "Root App") and leveraging `descix-serve` as a local mirror of the production load balancer's discovery logic.
 
-**Key Principle:** All Apps (DeSciX Store, Powch, App X) are **Isolated Peers** running in their own security domains (Origins).
+**Key Principle:** All Apps (DeSciX Store, Powch, App X) are peers built on the same SDK. The Shell frames every app from its own origin; Powch, the identity silo, is the one app on a separate origin.
 
-*   **Production:** `descix.net` (Store), `powch.descix.net` (Powch), `app-x.descix.net` (App X).
-*   **Local Dev:**
-    *   **Gateway:** `localhost:5173` (The "Public" Face / Load Balancer).
-    *   **Store (Shell):** `localhost:5174` (Upstream for Gateway).
-    *   **Powch:** `localhost:5175` (Isolated Peer).
-    *   **App X:** `localhost:5176+` (Isolated Peer).
+*   **Production:** `descix.net` (Store), `powch.descix.net` (Powch), `{app}.descix.net` (an app's own host).
+*   **Local Dev:** one HTTPS gateway origin, `https://localhost:<port>`, where the port is `--port`, else `env.gateway.port`, else `5173`, printed with its source at startup.
+    *   **Shell:** `/` — `env.siteUrl`, else the `env.gateway.shell` repo's local site, else the API origin.
+    *   **App X:** `/p/<appId>` on the gateway origin (the app's dev server or static directory).
+    *   **Powch:** its own origin, from `resolvePowchUrl`.
 
 ## 1. The "Root App" Concept
 
@@ -19,54 +18,30 @@ The "Platform" is simply the App that claims the Root Route (`/`).
 *   **App ID:** `daita` (DeSciX Community Token Symbol).
 *   **Role:** The "Shell" or "Store" that users visit first.
 *   **Production:** Maps `https://descix.net` -> `daita` App.
-*   **Local:** Maps `https://localhost:5173` -> `daita` App (running on `localhost:5174`).
+*   **Local:** Maps the gateway root `https://localhost:<port>/` -> the Shell (`env.siteUrl`, else the `env.gateway.shell` repo's local site, else the API origin).
 
 ## 2. Standardized Workspace Structure
 
-The `.descix/workspace.json` file drives the local routing configuration.
+The `.descix/workspace.json` file drives the local routing configuration. It is version 3.0: each app repo holds its own file with exactly one `env.app`. A gateway workspace that serves several local app repos behind one `descix serve` lists them under `env.gateway`, with paths relative to its own root:
 
 ```json
-{
-  "version": "2.1",
-  "workspaceRoot": "/home/dev/my-descix-workspace",
-  "type": "workspace",
-  "env": {
-    "environment": "DEV",
-    "platform": {
-      "appId": "daita",
-      "localPath": "DeSciX_Cloud",
-      "site": { "port": 5174, "devCommand": "npm run dev:site" },
-      "microservice": { "port": 4000, "devCommand": "npm run dev:service" }
-    },
-    "products": [
-      {
-        "appId": "powch",
-        "localPath": "DeSciX_Powch",
-        "site": { "port": 5175, "devCommand": "npm run dev:site" },
-        "microservice": { "port": 3003, "devCommand": "npm run dev:service" }
-      },
-      {
-        "appId": "daita-docs",
-        "localPath": "daita-docs",
-        "site": { "port": 5176, "devCommand": "npm run dev", "protocol": "http" }
-      }
-    ]
-  }
-}
+"gateway": { "port": 5599, "shell": "../platform-shell", "appRepos": ["../my-app", "../other-app"] }
 ```
+
+`env.gateway.shell` is the repo whose app the gateway serves at `/`; each repo in `env.gateway.appRepos[]` is served at `/p/<appId>`, and that repo's own workspace file is the sole authority on its app's id, site and microservice. The schema and the verb that owns each key: `agent-assets/reference/workspace-config.md` in the published `@descix/cli` package.
 
 ## 3. `descix-serve`: The Universal Discovery Map
 
-`descix-serve` runs on the **Gateway Port (5173)**. Its primary role is **Discovery** and **Routing**.
+`descix-serve` runs on the **Gateway Port** (`--port`, else `env.gateway.port`, else `5173`). Its primary role is **Discovery** and **Routing**.
 
 ### A. Routing Logic (Local vs. Prod)
 
-| Request Path | Prod Target (Load Balancer) | Local Target (`descix-serve` :5173) |
+| Request Path | Prod Target (Load Balancer) | Local Target (`descix-serve`) |
 | :--- | :--- | :--- |
-| **`/` (Root)** | `daita` App (GCS `prod/daita/site`) | `daita` App (Localhost :5174) |
-| **`/apifront`** | `daita` Service (Cloud Run) | `daita` Service (Localhost :4000) |
+| **`/` (Root)** | `daita` App (GCS `prod/daita/site`) | The Shell: `env.siteUrl`, else the `env.gateway.shell` repo's local site, else the API origin |
+| **`/apifront`** | `daita` Service (Cloud Run) | The CLI's resolved API origin (the `--api-url` flag, else the workspace's `env.apiUrl`) |
 | **`/s/{appId}`** | `{appId}` Service (Cloud Run) | `{appId}` Service (Localhost :{microservice.port}) |
-| **`/p/{appId}`** | `{appId}` App (GCS `prod/{appId}/site`) | `{appId}` App (Localhost :{site.port}, NO path rewrite) |
+| **`/p/{appId}`** | `{appId}` App (GCS `prod/{appId}/site`) | `{appId}` App: its dev server (`site.port`, NO path rewrite) or its static directory (`site.static`) |
 
 ### B. The Discovery Map (`__WORKSPACE_PRODUCTS__`)
 
@@ -77,8 +52,8 @@ To solve the "URL Mismatch" (DB says GCS, Local says Localhost), `descix serve` 
 ```javascript
 // Vite define, built from workspace.json
 __WORKSPACE_PRODUCTS__ = {
-  "daita": "https://localhost:5173/",          // env.platform -> gateway ROOT
-  "app-x": "https://localhost:5173/p/app-x"    // products -> gateway /p/{appId}
+  "daita": "https://localhost:5173/",          // env.gateway.shell -> gateway ROOT
+  "app-x": "https://localhost:5173/p/app-x"    // env.gateway.appRepos -> gateway /p/{appId}
 };
 ```
 
@@ -105,31 +80,29 @@ The App SDK (`AppData` / `AppShell`) uses this map to determine the **Iframe Sou
     ```
 
 *   **Result:**
-    *   The Store (`:5173` -> proxied from `:5174`) loads Powch Iframe from `https://localhost:5175`.
-    *   **Cross-Origin Isolation is Preserved.** (`:5173` vs `:5175`).
+    *   The Shell, on the gateway origin, frames each app from `/p/<appId>` on that same origin, and loads the Powch iframe from the URL `resolvePowchUrl` returns.
+    *   **Cross-Origin Isolation is Preserved for Powch** (the gateway origin vs Powch's own origin).
     *   `postMessage` works correctly because the PWA knows the *actual* origin of the peer.
 
-## 4. Port-Based Isolation
+## 4. Powch Origin Isolation
 
-We explicitly **DO NOT** proxy peer apps through the Gateway Port (`:5173/p/powch`) for UI loading.
-*   **Why?** Proxying makes them Same-Origin (`:5173`), breaking the security model.
-*   **Instead:** Peer Apps run on their own ports (`:5175`).
-*   **Access:** The Store PWA loads them via full URL (`https://localhost:5175`).
+Powch is the one app the Shell does not frame from `/p/`: it stays on its own origin, so no hosted app can reach its DOM.
+*   **Its URL has one owner, `resolvePowchUrl`:** an explicit override, else `env.powchUrl`, else the site origin of a Powch repo listed in `env.gateway.appRepos`.
+*   **Every other app** in `env.gateway.appRepos` is served at `/p/<appId>` on the gateway origin.
 
 ## 5. Directory Structure (Standardized)
 
-*   `DeSciX_Cloud/` (The Platform / Root App)
-    *   `site/` (React PWA - formerly `DeSciX_PWA`)
-    *   `microservice/` (Node Service - formerly `cloud`)
-*   `DeSciX_Powch/` (Peer App)
-    *   `site/` (React PWA)
-    *   `microservice/` (Node Service)
+Every app, the root app (`daita`) and Powch included, uses the layout `descix app init` creates:
+
+*   `site/` (the web front end; any framework)
+*   `microservice/` (the backend service; optional, the slot always exists)
+*   `assets/` (`system_instructions.md` and `app_description.md`)
 
 ## 6. Airdrop Onboarding
 
 A three-path onboarding menu is presented to new users who reach
 `AuthFlowController.AIRDROP_ONBOARDING_CHOICE`. Rendered by
-`OnboardingEntryChoice` in `DeSciX_Powch/packages/react/src/views/`.
+Powch's `OnboardingEntryChoice` view.
 
 Paths:
 - **I have an airdrop private key** → passkey ceremony fires first →

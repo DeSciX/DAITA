@@ -157,7 +157,7 @@ Registration uses **one** biometric ceremony. The credentialId and PRF result bo
 sequenceDiagram
     participant User
     participant Powch as Powch_Client
-    participant Cloud as DeSciX_Cloud
+    participant Cloud as DeSciX Cloud
     participant PowchSvc as Powch_Microservice
 
     User->>Powch: "New User" selected

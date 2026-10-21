@@ -4,7 +4,7 @@
 
 We have transformed DeSciX from a monolithic platform into a **Federated MCP Service Mesh**. This architecture leverages the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) as the fundamental transport and discovery layer for all platform capabilities.
 
-**Key Innovation:** `DeSciX_Cloud` acts as a **Federated MCP Broker**. It aggregates tools from all registered microservices into a single, unified `tools/list` catalog. This allows AI Agents (and CLIs) to discover and invoke capabilities across the entire mesh without knowing where the service lives.
+**Key Innovation:** the DeSciX Cloud backend acts as a **Federated MCP Broker**. It aggregates tools from all registered microservices into a single, unified `tools/list` catalog. This allows AI Agents (and CLIs) to discover and invoke capabilities across the entire mesh without knowing where the service lives.
 
 ### Intelligent Tool Discovery
 
@@ -26,7 +26,7 @@ You no longer build isolated REST APIs. You build **Tool Providers**.
 ### How to Create a New Service
 
 1.  **Use the Starter Kit:**
-    Copy the `@descix/service-starter` template (located in `DeSciX_ServiceSDK/`).
+    Run `descix microservice init`: it copies the microservice template that ships in the published `@descix/cli` package (`templates/scaffolds/microservice/`) into your app's `microservice/` folder.
 
 2.  **Define Your Tools (`manifest.json`):**
     You must provide a JSON Schema (`inputSchema`) for every command. This is how the AI "sees" your tool.
@@ -59,7 +59,7 @@ You no longer build isolated REST APIs. You build **Tool Providers**.
     ```
 
 4.  **Create SERVICE_README (Required):**
-    Create `SERVICE_README_{service_name}.md` in your app's Drive folder. This documentation is vectorized for `tell_me_how` discovery. See `DeSciX_ServiceSDK/templates/SERVICE_README_TEMPLATE.md` for the format.
+    Create `SERVICE_README_{service_name}.md` in your app's Drive folder. This documentation is vectorized for `tell_me_how` discovery. See `templates/scaffolds/microservice/templates/SERVICE_README_TEMPLATE.md` in the published `@descix/cli` package for the format.
     
     ```markdown
     # My Service
@@ -87,7 +87,7 @@ You no longer build isolated REST APIs. You build **Tool Providers**.
     - Register your manifest with the Core
 
 ### Benefits for You
-*   **Zero Auth Code:** Identity is asserted by the platform door as a **signed** `params._descix`, and your service verifies it locally via `mountMeshApi` from `@descix/cloud-core` — never trust an unsigned `_descix`; an uncredentialed POST to `/api` is `401 MESH_CTX_MISSING`. See [`mesh-trust-model.md`](./mesh-trust-model.md).
+*   **Zero Auth Code:** Identity is asserted by the platform door as a **signed** `params._descix`, and your service verifies it locally via `mountMeshApi` from `@descix/cloud-core` — never trust an unsigned `_descix`; an uncredentialed POST to `/api` is `401 MESH_CTX_MISSING`. See [Service Mesh and Proxying](../services/service-mesh-and-proxying.md).
 *   **Instant AI Availability:** Once registered, your tools are immediately available to every AI agent in the ecosystem.
 *   **Access to Core:** You can call *other* services via the Broker loopback.
 
@@ -97,7 +97,7 @@ You no longer build isolated REST APIs. You build **Tool Providers**.
 
 ### Your Role: Managing the Federation
 
-You oversee the `DeSciX_Cloud` Broker that routes traffic and aggregates tools.
+You oversee the DeSciX Cloud Broker that routes traffic and aggregates tools.
 
 ### Architecture Components
 
@@ -111,15 +111,15 @@ You oversee the `DeSciX_Cloud` Broker that routes traffic and aggregates tools.
         2.  Filters it by the caller's permissions.
         3.  Applies the DISCOVERY-CORE fence, serving only the ratified handshake floor plus the caller's granted command names and discarding the rest.
         4.  Applies the OAuth read-only gate for public-internet OAuth callers.
-    *   The floor is owned by `DISCOVERY_CORE_TOOL_NAMES` / `describeDiscoveryCoreFence()` in `DeSciX_Core/descix-platform-api/src/mcp-tools/nativeTools.js`. Commands discarded at step 3 stay registered and callable — dispatch is unaffected — and agents reach them via `tell_me_how` + `execute_remote_command`.
+    *   The floor is owned by `DISCOVERY_CORE_TOOL_NAMES` / `describeDiscoveryCoreFence()` in the published `@descix/platform-api` package (`src/mcp-tools/nativeTools.js`, exported as `@descix/platform-api/mcp-tools`). Commands discarded at step 3 stay registered and callable — dispatch is unaffected — and agents reach them via `tell_me_how` + `execute_remote_command`.
 
-3.  **Command Routing — Broker-First (per [`platform-must-know-briefer.md`](./platform-must-know-briefer.md) §3):**
+3.  **Command Routing — Broker-First:**
 
-    Sites use the SDK → `POST /apifront`. Core validates session + entitlements, then dispatches via `proxyToExternalService()` using Firestore `ServiceManifests`. **No LB NEG is required for new non-core apps** (manifest registration only). This broker channel is the platform-hosted dispatch path; an app's own inbound user traffic (`{app}.descix.net/api`) goes edge → `{app}-{env}` directly and is metered by the app owner in-service, not at apiFront — see [`mesh-trust-model.md`](./mesh-trust-model.md).
+    Sites use the SDK → `POST /apifront`. Core validates session + entitlements, then dispatches via `proxyToExternalService()` using Firestore `ServiceManifests`. **No LB NEG is required for new non-core apps** (manifest registration only). This broker channel is the platform-hosted dispatch path; an app's own inbound user traffic (`{app}.descix.net/api`) goes edge → `{app}-{env}` directly and is metered by the app owner in-service, not at apiFront.
 
     At the LB (provisioned once per env by `provision-platform-lb.js`):
     - `/apifront/*`, `/mcp/*`, `/api/*` on app hosts and env apex → `{env}-api-backend` (central Cloud Function `apiFront-http-{env}`)
-    -     Static site paths → GCS `/{env}/{app_id}/site/`. Trust and metering ownership: [`mesh-trust-model.md`](./mesh-trust-model.md).
+    -     Static site paths → GCS `/{env}/{app_id}/site/`.
 
     Within the command-broker channel:
     *   Incoming request `POST /apifront` -> `command: "deploy_community"`
@@ -131,7 +131,7 @@ You oversee the `DeSciX_Cloud` Broker that routes traffic and aggregates tools.
 
 *   **Restarting Services:**
     *   **New Service Added:** You generally **do not** need to restart Core. The `ServiceManifestManager` has a 5-minute cache (`CACHE_TTL_MS`).
-    *   **Force Refresh:** If you need immediate discovery, restart the `DeSciX_Cloud` service to clear the in-memory manifest cache.
+    *   **Force Refresh:** If you need immediate discovery, restart the DeSciX Cloud service to clear the in-memory manifest cache.
     *   **Service Updates:** If a microservice updates its code (but not its manifest), no Core restart is needed.
 
 *   **Going Live:**
@@ -257,8 +257,8 @@ await tools.callTool('execute_remote_command', {
 
 A client's `tools/list` is served live and is not a static list. It is the ratified DISCOVERY-CORE
 floor union the caller's granted command names — owned by `DISCOVERY_CORE_TOOL_NAMES` /
-`describeDiscoveryCoreFence()` in
-`DeSciX_Core/descix-platform-api/src/mcp-tools/nativeTools.js`, and applied by
+`describeDiscoveryCoreFence()` in `@descix/platform-api/mcp-tools`
+(`src/mcp-tools/nativeTools.js` in the published package), and applied by
 `buildPermissionFilteredToolList()` as described in §3. Every other registered command stays
 callable via `tell_me_how` + `execute_remote_command`.
 

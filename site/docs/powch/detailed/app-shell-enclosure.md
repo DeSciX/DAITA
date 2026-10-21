@@ -99,5 +99,4 @@ flowchart TB
 
 ## Related
 
-- [standalone-app-shell-and-zero-dependency-design.md](./standalone-app-shell-and-zero-dependency-design.md) — Options going forward (Option A vs B)
 - [developer-guide.md](../developer-guide.md) — Visibility paradigm, request routing

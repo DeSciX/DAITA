@@ -36,14 +36,12 @@ The `detailed/` directory contains granular documentation for specific subsystem
 | Document | Description |
 |----------|-------------|
 | [powch-state-machine.md](./detailed/powch-state-machine.md) | Event types and protocol call stack |
-| [powch-flow-auth.md](./detailed/powch-flow-auth.md) | Auth flow state-by-state reference |
 | [consent-pii-paradigm.md](./detailed/consent-pii-paradigm.md) | PII consent invariants, flow, and storage |
 | [powch-flow-sign.md](./detailed/powch-flow-sign.md) | Sign flow state-by-state reference |
 | [powch-flow-wallet-connect.md](./detailed/powch-flow-wallet-connect.md) | Wallet connect flow reference |
 | [powch-flow-payment.md](./detailed/powch-flow-payment.md) | Payment flow reference (stubs) |
-| [powch-ui-and-flows.md](./detailed/powch-ui-and-flows.md) | Shell, tabs, and Holdings tab details |
+| [powch-ui-and-flows.md](./detailed/powch-ui-and-flows.md) | Shell, tabs, flow summary, data and persistence |
 | [app-shell-enclosure.md](./detailed/app-shell-enclosure.md) | Shell nesting for platform, standalone app, and Powch identity silo (Cases 1–3) |
-| [standalone-app-shell-and-zero-dependency-design.md](./detailed/standalone-app-shell-and-zero-dependency-design.md) | Deployment cases and shell design; Options A vs B (zero-dependency direction) |
 | [powch-flow-controller-architecture.md](./detailed/powch-flow-controller-architecture.md) | Flow controller design and API |
 | [cloud-vault-architecture.md](./detailed/cloud-vault-architecture.md) | Cloud Vault design: CloudKey derivation, vault in cloud, onboarding |
 | [prf-derived-master-wallet.md](./detailed/prf-derived-master-wallet.md) | PRF → CloudKey → master wallet: full walkthrough, one-touch registration |
@@ -56,13 +54,4 @@ The `detailed/` directory contains granular documentation for specific subsystem
 
 ## Package Structure
 
-```
-DeSciX_Powch/
-├── packages/
-│   ├── client-core/     # Pure JS - PowchData, vaultOps, WebAuthn
-│   └── react/           # React SDK - providers, flows, views, hooks
-├── samples/
-│   ├── standalone-react/    # React integration sample
-│   └── standalone-vanilla/  # Vanilla JS integration sample
-└── docs/                # This documentation
-```
+Powch is built in two layers: **client-core** (pure JS: PowchData, vaultOps, WebAuthn) and the **React layer** (providers, flows, views, hooks). Neither is a published package. An app reaches Powch through the published `@descix/app-sdk`: AppShell wires it in automatically, and a standalone app uses `PowchClient` from `@descix/app-sdk/powch-client`.

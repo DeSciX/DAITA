@@ -74,9 +74,9 @@ These commands require specific permissions and are not available to regular use
 
 ### Shared Constants
 
-- **Backend**: `DeSciX_Cloud/cloud/services/utils.js` exports `GUEST_ALLOWED_COMMANDS` (apiFront imports from utils.js)
-- **Frontend**: `DeSciX_Core/descix-app-sdk/src/util/AppData.jsx` exports `GUEST_ALLOWED_COMMANDS`
-- Both lists must be kept in sync manually (no automatic sync mechanism)
+- **Backend**: the published `@descix/cloud-core` package exports `GUEST_ALLOWED_COMMANDS` (`src/config.js`); the Cloud's apiFront reads it
+- **Frontend**: the published `@descix/app-sdk` package exports its own `GUEST_ALLOWED_COMMANDS` (`src/util/AppData.jsx`), for UI gating only; the backend check is authoritative
+- The two lists are kept in sync by hand (no automatic sync mechanism)
 
 ### fetch_my_purchases Special Handling
 
@@ -115,5 +115,4 @@ When adding new commands:
 ## Related Documentation
 
 - [Services Architecture](services.md) – Service layer design
-- [Deployment](../../deployment/deployment-guide.md) – Deploy to GCP
 - [Platform Architecture](../../architecture/index.md) – Overall platform architecture

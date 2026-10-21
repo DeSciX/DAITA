@@ -407,33 +407,12 @@ AdminPanel.jsx
 
 ## 7. Key Files
 
-### Backend
+The tuning command handlers, the Gemini tuning wrapper and the admin Fine-Tuning tab are part of the DeSciX Cloud service and its PWA, which are not published packages. The pieces that ship in public packages:
 
-| File | Role |
-|------|------|
-| `DeSciX_Cloud/microservice/services/geminiTuningService.js` | `googleapis` wrapper: `createTunedModel`, `getTunedModel`, `listTunedModels`, `getOperation`, `deleteTunedModel` |
-| `DeSciX_Cloud/microservice/services/commandHandlers/tuningCommands.js` | 7 command handlers following ragCommands.js pattern |
-| `DeSciX_Cloud/microservice/services/commandHandlers/registry.js` | Route registration for all tuning commands |
-| `DeSciX_Cloud/microservice/services/ipStorageUtils.js` | `KnowledgeBase` class with `tuned_model_name` field |
-| `DeSciX_Cloud/microservice/services/pineconeService.js` | `buildMetadataFilter()`, `getNamespaceForKB()`, `validateChunkRecord()` |
-| `DeSciX_Cloud/microservice/services/geminiInteractions.js` | RAG pipeline: model creation, function calling, interaction threading |
-| `DeSciX_Core/descix-cloud-core/src/storageUtils.js` | `FirestoreCollections.KB_TUNING_DATA()`, `KB_TUNING_JOBS()` |
-
-### Frontend
-
-| File | Role |
-|------|------|
-| `DeSciX_Cloud/site/src/components/AdminPanel.jsx` | Tab 4 registration |
-| `DeSciX_Cloud/site/src/components/admin/FineTuningPanel.jsx` | Main container, model selectors, cost estimation |
-| `DeSciX_Cloud/site/src/components/admin/QAPairEditor.jsx` | Individual Q&A pair card |
-| `DeSciX_Cloud/site/src/components/admin/TuningPreviewChat.jsx` | Preview chat widget |
-| `DeSciX_Cloud/site/src/components/admin/TuningJobMonitor.jsx` | Job management + deploy |
-
-### MCP
-
-| File | Role |
-|------|------|
-| `DeSciX_Core/descix-cli/bin/mcp-server.js` | `previous_interaction_id` added to `ask_question_to_app` schema |
+| Package | Path | Role |
+|---------|------|------|
+| `@descix/cloud-core` | `src/storageUtils.js` | `FirestoreCollections.KB_TUNING_DATA()`, `KB_TUNING_JOBS()` |
+| `@descix/platform-api` | `src/mcp-tools/nativeTools.js` (`@descix/platform-api/mcp-tools`) | The `ask_question_to_app` tool schema, including `previous_interaction_id` |
 
 ---
 
@@ -458,5 +437,4 @@ A typical EVP KB with 50 Q&A pairs trained for 5 epochs ≈ 50,000 tokens ≈ $0
 
 - [RAG/Chat As-Built](rag-chat-as-built.md) — end-to-end request flow, model selection chain, Pinecone scoping
 - [Unified Product Registry](unified-product-registry.md) — `Products/{app_id}` as canonical lookup, `hydrateCommunityIdFromProducts()`
-- [Design Patterns](design-patterns.md) — command routing, CacheFirestore, service wrappers
 - [Federated MCP Mesh](federated-mcp-mesh.md) — MCP server tool definitions, service discovery

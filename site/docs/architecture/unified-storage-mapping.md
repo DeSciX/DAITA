@@ -82,15 +82,15 @@ export const GCSPaths = {
 The `Products` collection in Firestore (`descix-{env}`) will store the fully qualified URL.
 
 *   **Field:** `ip_site_gcs_path_url`
-*   **Value:** Load-balancer subdomain URL, e.g. `https://powch.descix.net` (prod) or `https://powch.demo.descix.net` (demo)
-*   **Set by:** `confirm_site_deploy` in `appCommands.js` via `GCSPaths.toSubdomainUrl(appId)`
+*   **Value:** the site's mount URL on the App Shell origin, which the Shell uses as the CodeSite iframe `src`, e.g. `https://descix.net/prod/powch/site/index.html` on PROD
+*   **Set by:** the `confirm_site_deploy` command on a non-preview deploy, which `descix site upload` calls
 *   **NOT:** a raw GCS storage path (those return 404 — GCS bucket is not configured for direct HTTP serving of sites)
 
 ## Local Development Override
 
 In local development, the `ip_site_gcs_path_url` stored in the database is **overridden** by the local gateway.
 
-1.  **Database:** `Products/powch` -> `ip_site_gcs_path_url: "https://powch.descix.net"`
+1.  **Database:** `Products/powch` -> `ip_site_gcs_path_url: "https://descix.net/prod/powch/site/index.html"` (PROD)
 2.  **Local Gateway (`descix serve`):** builds `__WORKSPACE_PRODUCTS__` from `workspace.json`, mapping each app to its **gateway-origin** URL (`https://localhost:{gatewayPort}/p/{appId}`). Powch is deliberately EXCLUDED — it is the ZK-SSO identity silo and stays cross-origin by design; its location has one owner, `resolvePowchUrl`.
 3.  **Client (`AppData`):**
     ```javascript
@@ -103,7 +103,7 @@ In local development, the `ip_site_gcs_path_url` stored in the database is **ove
     }
     ```
 
-This ensures that developers see their local changes (`localhost:5175`) while the same code running in production sees the deployed site via the load balancer subdomain.
+This ensures that developers see their local changes (the app at `/p/<appId>` on the gateway origin) while the same code running in production loads the deployed site from its `ip_site_gcs_path_url`.
 
 ## Migration Strategy
 

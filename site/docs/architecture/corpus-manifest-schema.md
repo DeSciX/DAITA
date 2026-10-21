@@ -1,6 +1,6 @@
 # Corpus Manifest Schema (canonical)
 
-**Owner module:** `DeSciX_Core/descix-cli/lib/core/ManifestLoader.js`
+**Owner module:** `lib/core/ManifestLoader.js` in the published `@descix/cli` package
 **Consumers:** `CorpusWalker.js`, `CorpusDenyLint.js`, `corpus.js`, and the conformance test.
 
 A corpus manifest declares a *view* over git-managed files for RAG indexing. Files stay in place —

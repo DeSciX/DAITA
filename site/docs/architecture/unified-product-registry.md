@@ -1,7 +1,7 @@
 # Unified Product Registry — Schema & Identity
 
 > **Scope note:** This document covers **schema + identity** for the `Products` collection.
-> **Routing semantics live in [`platform-must-know-briefer.md`](./platform-must-know-briefer.md) §3.** That briefer is canonical for how requests reach apps. If anything below appears to describe runtime routing, the briefer wins.
+> **Routing semantics** (how requests reach apps) are in [Service Mesh and Proxying](../services/service-mesh-and-proxying.md).
 
 ## Overview
 
@@ -48,7 +48,7 @@ The system separates concerns between the **Immutable Registry** (Identity) and 
 | `id` | string | **Key.** Global unique slug. |
 | `productPath` | string | **The Pointer.** Internal Firestore path (e.g., `Community/descix/Apps/chat`). |
 | `gcsPath` | string | **The Site.** Bucket path for UI assets (e.g., `gs://.../uuid`). |
-| `ip_site_gcs_path_url` | string | **The URL.** Load-balancer subdomain URL (e.g., `https://egpt.demo.descix.net`). Set by `confirm_site_deploy`. |
+| `ip_site_gcs_path_url` | string | **The URL.** The site's mount URL on the App Shell origin, which the Shell uses as the CodeSite iframe `src` (e.g., `https://descix.net/prod/egpt/site/index.html` on PROD). Set by `confirm_site_deploy`, which `descix site upload` calls. |
 | `type` | enum | `COMMUNITY`, `APP` |
 | `price` | number | Purchase price in the community's token sale currency. **`USDCX` is dead terminology**; on-chain purchases settle via `batchUpdateBalances`, and platform AI-consumption is billed via the separate USD credits ledger. |
 | `currency` | string | Currency code (default `USDSCI`). |
@@ -56,7 +56,7 @@ The system separates concerns between the **Immutable Registry** (Identity) and 
 
 ### 3. Consumers of Products (NOT routing)
 
-Products is consulted at three distinct layers — **never by the LB at request time**. The canonical routing model is in [`platform-must-know-briefer.md`](./platform-must-know-briefer.md) §3.
+Products is consulted at three distinct layers — **never by the LB at request time**. The routing model is in [Service Mesh and Proxying](../services/service-mesh-and-proxying.md).
 
 **Runtime readers (post-LB, apifront-or-downstream):**
 - `hydrateCommunityIdFromProducts()` middleware in `apiFront.js` — resolves `community_id` from `Products/{app_id}` after the request has already been routed to the central command-broker Cloud Function.
@@ -94,31 +94,16 @@ We populated the `Products` collection in the operational database (`descix-dev`
 ### Step 3: Update Services
 1.  **Purchase Service:** Update `purchase_product` to look up `Products/{id}` instead of constructing paths.
 2.  **Bootstrap Script:** Use `admin/bootstrap.js hydrate-env` to hydrate `Products` from `descix-chain`.
-3.  **Platform LB (env standup only):** `deploy-backend-env.sh {env}` invokes `provision-platform-lb.js` (core NEG + apex + platform peer hosts). Extend `PLATFORM_PEER_APPS` when a new peer host is needed at platform tier — not per-app NEG on routine deploy. See [`platform-must-know-briefer.md`](./platform-must-know-briefer.md) §3–§4.
+3.  **Platform LB (env standup only):** `deploy-backend-env.sh {env}` invokes `provision-platform-lb.js` (core NEG + apex + platform peer hosts). Extend `PLATFORM_PEER_APPS` when a new peer host is needed at platform tier — not per-app NEG on routine deploy.
 
 ## Local Development Flow
 
-Developers define their active products in `workspace.json`:
+Each app repo's `.descix/workspace.json` holds exactly one `env.app`. A gateway workspace lists the local app repos it serves:
 
 ```json
-{
-  "env": {
-    "platform": {
-      "appId": "daita",
-      "localPath": "DeSciX_Cloud",
-      "site": { "port": 5174 }
-    },
-    "products": {
-      "powch": {
-        "type": "APP",
-        "localPath": "DeSciX_Powch",
-        "site": { "port": 5175 }
-      }
-    }
-  }
-}
+"gateway": { "port": 5599, "shell": "../platform-shell", "appRepos": ["../my-app", "../other-app"] }
 ```
 
 The CLI/Gateway (`descix-serve`) uses this to:
-1.  Serve the Platform Shell at the gateway origin (proxied from the platform site's `env.platform.site.port`).
+1.  Serve the Platform Shell at the gateway origin (the app of the `env.gateway.shell` repo).
 2.  Build `__WORKSPACE_PRODUCTS__` so the Shell knows each app's **gateway-origin** URL (`/p/{appId}`). Powch is NOT in that map — it stays cross-origin by design and is resolved separately by `resolvePowchUrl`.

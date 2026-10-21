@@ -55,7 +55,6 @@ sequenceDiagram
 - [API Reference](api-reference.md) – Complete command inventory
 - [Services Architecture](services.md) – Service layer design and call stacks
 - [RAG Pipeline](rag-pipeline.md) – Knowledge base vectorization and retrieval
-- [Deployment](../../deployment/deployment-guide.md) – Production, preview, demo deployment
 
 ## Related Documentation
 

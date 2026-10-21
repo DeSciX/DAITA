@@ -30,8 +30,6 @@ Value flows through **IP-IPOs**—the community-controlled pathway from private 
 - Pre-IP-IPO: non-transferable tokens, price discovery via on-chain auctions
 - Post-IP-IPO: unrestricted public DEX trading
 
-See [IP-IPO Lifecycle](contracts/ip-ipo-lifecycle.md) for details.
-
 ## Identity & Payments
 
 **[Powch](architecture/powch-defi-sso.md)** is the DeFi Banking + SSO layer across the DeSciX DAO/DEX ecosystem. One passkey-based identity, zero-knowledge shared userbase, passwordless one-touch login, and crypto with credit-card convenience—backed by hardware-wallet-grade security and anonymity.

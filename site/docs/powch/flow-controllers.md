@@ -334,7 +334,6 @@ async execute() {
 ## Detailed Documentation
 
 For implementing new flows, see [implementing-flows.md](./implementing-flows.md). For current architecture and ceremony detail, see [architecture.md](./architecture.md). For granular state-by-state documentation, see:
-- [detailed/powch-flow-auth.md](./detailed/powch-flow-auth.md)
 - [detailed/powch-flow-sign.md](./detailed/powch-flow-sign.md)
 - [detailed/powch-flow-wallet-connect.md](./detailed/powch-flow-wallet-connect.md)
 - [detailed/powch-flow-payment.md](./detailed/powch-flow-payment.md)

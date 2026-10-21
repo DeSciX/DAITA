@@ -93,7 +93,7 @@ The primary development entry point is `descix serve`.
 
 No port on this page is a fixed value. Every one of them comes from `.descix/workspace.json` and is printed, with its source, by the `descix serve` startup banner.
 
-See [descix-serve-gateway](descix-serve-gateway.md).
+See [Serve & Launch Modes](../development/serve-and-launch-modes.md).
 
 ## Phase 3 Complete
 
@@ -106,4 +106,4 @@ DeSciX PWA uses AppShell with `StandAloneAppWidget`; host apps use `PowchBridgeP
 ## Related
 
 - [pwa-overview](../app-sdk/pwa-sdk/pwa-overview.md) – PWA architecture
-- [descix-serve-gateway](descix-serve-gateway.md) – Local gateway
+- [Serve & Launch Modes](../development/serve-and-launch-modes.md) – Local gateway

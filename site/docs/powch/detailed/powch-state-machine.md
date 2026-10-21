@@ -1,6 +1,6 @@
 # Powch State Machine
 
-Single source of truth for global events, call stack, state constants, and the two state machines (App and View) in PowchAppProvider. Per-flow state machines and flow controller architecture are in this folder: [powch-flow-auth.md](powch-flow-auth.md), [powch-flow-sign.md](powch-flow-sign.md), [powch-flow-payment.md](powch-flow-payment.md), [powch-flow-wallet-connect.md](powch-flow-wallet-connect.md), [powch-flow-controller-architecture.md](powch-flow-controller-architecture.md).
+Single source of truth for global events, call stack, state constants, and the two state machines (App and View) in PowchAppProvider. Per-flow state machines and flow controller architecture are in this folder: [powch-flow-sign.md](powch-flow-sign.md), [powch-flow-payment.md](powch-flow-payment.md), [powch-flow-wallet-connect.md](powch-flow-wallet-connect.md), [powch-flow-controller-architecture.md](powch-flow-controller-architecture.md); the Auth flow's state machine is in [flow-controllers.md](../flow-controllers.md#authflowcontroller).
 
 ---
 
@@ -17,7 +17,7 @@ The SDK sends these types to the Powch App iframe. Payload is enriched with `bra
 | `POWCH_SIGN` | `{ data, address, actionType? }` | High-level sign intent (message/tx/typedData) |
 | `POWCH_RECEIVE` | `{ amount, token, reason }` | Request to receive payment (opens wallet/receive) |
 | `POWCH_SEND` | `{ amount, token, destination }` | Request to send payment (opens wallet/send) |
-| `POWCH_OPEN` | `{ view, data? }` | Deep-link to a specific view (home, wallet, holdings, activity) |
+| `POWCH_OPEN` | `{ tab? }` | Open Powch, switching to `tab` (a `TAB_IDS` value, e.g. `cards`, `portfolio`, `activity`) when given |
 | `POWCH_AUTH` | `{ origin?, require?, purpose?, signatureMessage? }` | Legacy auth flow (aliased to POWCH_LOGIN) |
 | `POWCH_LOGOUT` | — | Clear blob, identity cache, set LOCKED / IDLE |
 | `POWCH_SIGN_TX` | `{ tx, address }` | Request tx sign; machine sets SIGN_CONFIRM |
@@ -66,7 +66,7 @@ Events dispatched by PowchModal or views; only the App uses them. Handled (or no
 ```mermaid
 sequenceDiagram
   participant Host
-  participant SDK as [TODO - app-sdk powch references]
+  participant SDK as app-sdk PowchBridgeClient
   participant App as PowchAppProvider
   participant PD as PowchData
   participant AM as App State Machine
@@ -90,7 +90,7 @@ sequenceDiagram
 
 ### APP_STATES
 
-From [PowchData.jsx](../packages/client-core/src/PowchData.jsx) (client-core), re-exported by PowchAppProvider and @powch/react:
+From `PowchData` (client-core), re-exported by PowchAppProvider:
 
 | Constant | Value | Meaning |
 |----------|--------|---------|
@@ -122,7 +122,7 @@ From [PowchData.jsx](../packages/client-core/src/PowchData.jsx) (client-core), r
 
 ## 4. Two State Machines and Single View Mutex (PowchAppProvider)
 
-All view transitions route through a centralized **viewRouter(target)** and a single React state **currentView** updated only by **triggerViewChange**. There is no distributed render trigger (no `triggerRender`/`forceRender`). See [PWA React Developer's Guide](../../docs/pwa-react-developer-guide.md) for the pattern.
+All view transitions route through a centralized **viewRouter(target)** and a single React state **currentView** updated only by **triggerViewChange**. There is no distributed render trigger (no `triggerRender`/`forceRender`). The DeSciX PWA React Developer's Guide (App SDK section of these docs) describes the pattern.
 
 ### 4.1 Single mutex: currentView and triggerViewChange
 

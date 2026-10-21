@@ -24,7 +24,7 @@ workspaceProducts.js            PWA
 
 ### staticSitePlugin.js
 
-**Location:** `DeSciX_Core/descix-app-sdk/src/dev/staticSitePlugin.js`
+**Location:** `src/dev/staticSitePlugin.js` in the published `@descix/app-sdk` package; internal to the gateway (`src/dev/gateway.js` imports it), not re-exported from `@descix/app-sdk/dev`
 
 **Purpose:** Vite plugin that registers middleware to serve static files at `/p/{appId}/` paths. Runs BEFORE Vite's own middleware so static routes are handled before Vite tries to process them.
 
@@ -73,7 +73,7 @@ Request: GET /p/egpt/demos/fractal.html
 
 ### createViteProxyConfig.js — Static Route Extraction
 
-**Location:** `DeSciX_Core/descix-app-sdk/src/dev/createViteProxyConfig.js`
+**Location:** `src/dev/createViteProxyConfig.js` in the published `@descix/app-sdk` package (export `@descix/app-sdk/dev`)
 
 **Relevant Section:** Lines 71-84 — the `env.products` loop.
 
@@ -99,7 +99,7 @@ if (p.site?.static) {
 
 ### gateway.js — Static Route Orchestration
 
-**Location:** `DeSciX_Core/descix-app-sdk/src/dev/gateway.js`
+**Location:** `src/dev/gateway.js` in the published `@descix/app-sdk` package (export `@descix/app-sdk/dev`)
 
 **How it wires static sites:**
 
@@ -113,7 +113,7 @@ if (p.site?.static) {
 
 ### workspaceProducts.js — Product URL Mapping
 
-**Location:** `DeSciX_Core/descix-app-sdk/src/dev/workspaceProducts.js`
+**Location:** `src/dev/workspaceProducts.js` in the published `@descix/app-sdk` package (export `@descix/app-sdk/dev`)
 
 **Static site mapping (lines 32-34):**
 
