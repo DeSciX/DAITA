@@ -7,7 +7,7 @@ The PAYMENT flow handles the high-level intents of receiving funds (Invoicing) a
 
 ## 2. State Machine (As-Built)
 
-Single script in `packages/react/src/flows/PaymentFlowController.js`; branch by `options.type` in PREPARE_PAYMENT.
+Single script in `PaymentFlowController` (Powch's React layer); branch by `options.type` in PREPARE_PAYMENT.
 
 ```mermaid
 stateDiagram-v2

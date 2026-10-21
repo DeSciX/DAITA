@@ -38,7 +38,7 @@ flowchart TB
 
 ## Layering Rules
 
-1. **vaultOps.js** (`client-core/src/vaultOps.js`): Pure encrypt/decrypt (blob and session). No state, no network, no WebAuthn.
+1. **vaultOps** (client-core): Pure encrypt/decrypt (blob and session). No state, no network, no WebAuthn.
 2. **SyncManager** (inside PowchData): Orchestrates enclave read, create, and write. Exposes `read()`, `createCredential()`, `writeToEnclave()`. Uses vaultOps for encrypt/decrypt. Delegates biometric ceremonies to an injected CeremonyProvider. Owns vault timeout.
 3. **PowchData**: SSOT. Exposes cards, `unlock()`, `createPasskeyBlob()`, `saveCard()`, signing, resolveAddress. Hosts SyncManager. Consumers never call vaultOps or SyncManager directly.
 4. **PowchAppProvider**: CeremonyProvider, view/event handling. Registers as CeremonyProvider on mount.
@@ -47,7 +47,7 @@ flowchart TB
 
 ## PowchData - Active Data Manager
 
-**Location:** `packages/client-core/src/PowchData.js`
+**Location:** client-core, `PowchData` module
 
 PowchData is a static class (no instances) that serves as the Single Source of Truth for all Powch state. It combines in-memory vault state with enclave sync via SyncManager and uses vaultOps for all blob/session crypto.
 
@@ -137,7 +137,7 @@ SyncManager is used by PowchData for all enclave I/O: unlock uses `read()`, new 
 
 ## vaultOps - Vault Blob and Tier 1 / Tier 3 Crypto
 
-**Location:** `packages/client-core/src/vaultOps.js`
+**Location:** client-core, `vaultOps` module
 
 The blob is the vault (in-memory structure encrypted for cloud storage). vaultOps encapsulates securing the blob and Tier 1 contents. Two layers: (1) vault blob encryption for cloud (encryptVaultForCloud / decryptVaultFromCloud); (2) Tier 1 field encryption within the vault (e.g. crypto wallet private key in a card). vaultOps uses key derivation (deriveCloudKeyFromPRF, deriveEncryptionKey) and cipher operations; scheme-level helpers live in crypto.js. No state, no network, no WebAuthn.
 
@@ -195,13 +195,15 @@ PowchViewEvent.SET_FLOW_STATE
 
 ## File Map
 
-| Concern | Location |
-|---------|----------|
-| Data manager + SyncManager (SSOT) | `client-core/src/PowchData.js` |
-| Blob and session encrypt/decrypt | `client-core/src/vaultOps.js` |
-| Transaction signing | `client-core/src/transactionSigner.js` |
-| WebAuthn operations | `client-core/src/webauthn.js` |
-| BlobV3 and card container | `client-core/src/models/PowchVault.js` |
-| Card model and types | `client-core/src/models/Card.js` |
-| Tier 3 encrypted store | `client-core/src/models/Tier3Store.js` |
-| Core exports | `client-core/src/index.js` |
+All modules are in Powch's client-core layer (not a published package).
+
+| Concern | Module |
+|---------|--------|
+| Data manager + SyncManager (SSOT) | `PowchData` |
+| Blob and session encrypt/decrypt | `vaultOps` |
+| Transaction signing | `transactionSigner` |
+| WebAuthn operations | `webauthn` |
+| BlobV3 and card container | `PowchVault` model |
+| Card model and types | `Card` model |
+| Tier 3 encrypted store | `Tier3Store` model |
+| Core exports | client-core's entry module |

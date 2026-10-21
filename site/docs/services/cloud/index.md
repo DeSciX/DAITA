@@ -18,15 +18,17 @@ All Clients → POST /apifront/ → apiFront.js → Business Services
 
 ## Key Components
 
-- **`services/apiFront.js`** – Command router and paywall enforcement
-- **`services/communityManagement.js`** – Community/App/KnowledgeBase CRUD
-- **`services/purchase.js`** – Payment processing, role/product purchases
-- **`services/geminiAPI.js`** – RAG orchestration and LLM integration
-- **`services/pineconeService.js`** – Vector database operations
-- **`services/googleStorageService.js`** – Unified Drive and GCS operations
-- **`services/tokenService.js`** – On-chain token balance checks
-- **`services/authHandlers.js`** – Authentication and user management
-- **`services/ipStorageUtils.js`** – Data models (User, Community, App, KB, Role)
+Modules of the DeSciX Cloud service (not a published package):
+
+- **`apiFront`** – Command router and paywall enforcement
+- **`communityManagement`** – Community/App/KnowledgeBase CRUD
+- **`purchase`** – Payment processing, role/product purchases
+- **`geminiAPI`** – RAG orchestration and LLM integration
+- **`pineconeService`** – Vector database operations
+- **`googleStorageService`** – Unified Drive and GCS operations
+- **`tokenService`** – On-chain token balance checks
+- **`authHandlers`** – Authentication and user management
+- **`ipStorageUtils`** – Data models (User, Community, App, KB, Role)
 
 ## Request Flow
 
