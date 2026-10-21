@@ -8,7 +8,7 @@ The controller uses **PowchData.resolveAddress(address)** to get cardId and keyI
 
 ## 2. State Machine (As-Built)
 
-States and transitions match `packages/react/src/flows/SignFlowController.js`.
+States and transitions match `SignFlowController` in Powch's React layer.
 
 ```mermaid
 stateDiagram-v2

@@ -8,7 +8,7 @@ The WALLET CONNECT flow handles wallet selection, import, generation, and option
 
 ## 2. State Machine (As-Built)
 
-States and transitions match `packages/react/src/flows/WalletConnectFlowController.js`.
+States and transitions match `WalletConnectFlowController` in Powch's React layer.
 
 ```mermaid
 stateDiagram-v2

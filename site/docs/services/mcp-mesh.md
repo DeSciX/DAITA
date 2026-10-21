@@ -10,9 +10,9 @@ The DeSciX platform uses the [Model Context Protocol (MCP)](https://modelcontext
 
 ## Tool Provider Model
 
-Microservices are **Tool Providers**—they expose MCP tools with JSON `inputSchema`, not isolated REST APIs. `buildPermissionFilteredToolList()` (`microservice/services/apiFront.js`) builds the advertised surface in four stages:
+Microservices are **Tool Providers**—they expose MCP tools with JSON `inputSchema`, not isolated REST APIs. `buildPermissionFilteredToolList()` (in the Cloud's `apiFront`) builds the advertised surface in four stages:
 
-1. Loads the candidate universe — native tools (`commandMeta mcp:true`) plus external tools from Firestore `ServiceManifests` — from its one owner, `services/advertisableTools.js`
+1. Loads the candidate universe — native tools (`commandMeta mcp:true`) plus external tools from Firestore `ServiceManifests` — from its one owner, the Cloud's `advertisableTools` module
 2. Filters by the caller's permissions (the describe IS the permission gate)
 3. Applies the DISCOVERY-CORE fence: keeps only the handshake floor plus the caller's granted command names, and discards the rest from `tools/list`
 4. Applies the OAuth read-only gate for public-internet OAuth callers
@@ -53,7 +53,7 @@ Its membership is ratified — do not add or remove a name without a CEO ruling.
 contract, derived from the constant so it cannot drift from what is filtered.
 
 The fence is a **floor, not a ceiling**: `tools/list` serves DISCOVERY-CORE **union** the
-calling identity's granted command names (`services/toolVisibilityService.js`). An absent,
+calling identity's granted command names (the Cloud's `toolVisibilityService`). An absent,
 empty or expired grant is inert — the union degrades to exactly the floor. A grant widens
 visibility only; the permission gate runs first, so a granted name the caller may not invoke was
 already dropped and cannot be re-admitted.

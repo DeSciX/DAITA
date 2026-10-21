@@ -16,7 +16,7 @@ existing GA4 sink (`ga4EventService`). No new entitlement, payment, or auth mach
 | | |
 |---|---|
 | **Command name** | `report_app_usage` |
-| **Handler** | `services/commandHandlers/ragCommands.js` (registered `registry.js`) |
+| **Handler** | the Cloud's RAG command handlers (`ragCommands`), registered in the command registry |
 | **Auth** | Authenticated only. NOT in `GUEST_ALLOWED_COMMANDS` → apiFront rejects guests. Caller uses the wallet-sig session rail (`.descix/wallet.json` → `reconnect_by_wallet`). |
 | **Params** | `{ app_id }` — e.g. `'egpt-frqtl'`. **No `community_id` from the client** — apiFront middleware hydrates it from `Products/{app_id}`. |
 | **Returns** | `{ verified: boolean, expiresAt: string\|null }` — `expiresAt: null` ⇒ permanent / one-time entitlement. |
@@ -67,7 +67,7 @@ with **`ExpiresAt` absent**. `verify_subscription({app_id:'egpt-frqtl'})` →
   convenience (ga4EventService.js, alongside `emitAiChatEvent`). Fire-and-forget; `console.warn`
   on failure; never blocks the response.
 
-## Tests (in `microservice/tests/`)
+## Tests (in the Cloud service's test suite)
 
 - `ws-frqtl-appify-infra-gate.mjs` — grant + verify over the real `/apifront` wallet-sig rail.
 - `ws-frqtl-appify-record-read.mjs` — raw persisted `USER_PURCHASES` doc: `ExpiresAt` absent.

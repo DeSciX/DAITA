@@ -173,12 +173,12 @@ AuthFlowController calls **PowchData.unlock()** (or **PowchData.createPasskeyBlo
 
 | Concern | File |
 |--------|------|
-| SSOT and storage engine | `client-core/src/PowchData.js` |
-| Enclave write orchestration | SyncManager inside `PowchData.js` |
-| Vault blob and Tier 1 encryption | `client-core/src/vaultOps.js`. vaultOps encapsulates: (1) cloud vault encrypt/decrypt (encryptVaultForCloud, decryptVaultFromCloud); (2) CloudKey derivation (deriveCloudKeyFromPRF); (3) Tier 1 field encryption (encryptPrivateKey, decryptPrivateKey). Tier 3 session: encryptSession, decryptSession. Key derivation: deriveEncryptionKey. |
-| BlobV3 and card container | `client-core/src/models/PowchVault.js` |
-| Card model and types | `client-core/src/models/Card.js` |
-| Tier 3 encrypted store | `client-core/src/models/Tier3Store.js` (load/save use vaultOps encryptSession/decryptSession) |
+| SSOT and storage engine | client-core `PowchData` |
+| Enclave write orchestration | SyncManager inside `PowchData` |
+| Vault blob and Tier 1 encryption | client-core `vaultOps`. vaultOps encapsulates: (1) cloud vault encrypt/decrypt (encryptVaultForCloud, decryptVaultFromCloud); (2) CloudKey derivation (deriveCloudKeyFromPRF); (3) Tier 1 field encryption (encryptPrivateKey, decryptPrivateKey). Tier 3 session: encryptSession, decryptSession. Key derivation: deriveEncryptionKey. |
+| BlobV3 and card container | client-core `PowchVault` model |
+| Card model and types | client-core `Card` model |
+| Tier 3 encrypted store | client-core `Tier3Store` model (load/save use vaultOps encryptSession/decryptSession) |
 
 ---
 

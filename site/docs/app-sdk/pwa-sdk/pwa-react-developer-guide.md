@@ -42,7 +42,7 @@ A single function `viewRouter(targetView)` is the gatekeeper for all view transi
 
 ## 2. PWA Shell Reference Implementation
 
-**Files:** `DeSciX_PWA/src/AppContext.jsx`, `DeSciX_PWA/src/App.jsx`, `DeSciX_PWA/src/util/AppData.jsx`
+**Files:** the DeSciX PWA's own `AppContext`, `App` and `AppData` modules
 
 **Flow:**
 

@@ -119,7 +119,7 @@ W2/W3 self-heals.
 
 ## 7. Session identity plumbing
 
-The unified `sessionInfo` helper `buildSessionInfo` (Powch `microservice/src/sessionInfo.js:32`)
+The unified `sessionInfo` helper `buildSessionInfo` (the Powch microservice's `sessionInfo` module)
 is the single owner of session/role emission, consumed by all six Powch finishers
 (`index.js:277, 328, 456, 493, 564, 585`) and `accept_tos` (`index.js:1127`). Cloud consumes the
 proxied result generically — extracting `sessionInfo.roles` into its `userRolesMap`

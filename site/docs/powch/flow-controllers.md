@@ -4,7 +4,7 @@ Flow controllers are headless state machines that encapsulate business logic for
 
 ## BaseFlowController
 
-**Location:** `packages/react/src/flows/BaseFlowController.js`
+**Location:** Powch's React layer, `BaseFlowController` module
 
 All flow controllers extend BaseFlowController. **Default** `requirements = { vaultUnlocked: true }`; AuthFlowController overrides to `false`. **FlowRunner** checks before starting: if `vaultUnlocked` is true and the vault is locked (but credential exists), it calls `PowchData.unlock()` first; on failure the flow is rejected. See [architecture.md](./architecture.md).
 
@@ -22,7 +22,7 @@ Flow controllers receive a context object from PowchAppProvider (built by FlowRu
 
 ## AuthFlowController
 
-**Location:** `packages/react/src/flows/AuthFlowController.js`
+**Location:** Powch's React layer, `AuthFlowController` module
 
 Purpose: "Get ID Card for Site" — user identification, authentication (biometric), and data sharing consent. Triggered by `POWCH_LOGIN` or `POWCH_AUTH`. **requirements.vaultUnlocked:** false (this flow handles unlock/create itself).
 
@@ -137,7 +137,7 @@ Use `AuthFlowProps.login(opts)` for internal calls; host payloads use `AuthFlowP
 
 ## SignFlowController
 
-**Location:** `packages/react/src/flows/SignFlowController.js`
+**Location:** Powch's React layer, `SignFlowController` module
 
 Handles signing of Ethereum transactions, personal messages, or typed data. Triggered by `POWCH_SIGN`, `POWCH_SIGN_TX`, `POWCH_SIGN_MESSAGE`, or `POWCH_SIGN_TYPED_DATA`.
 
@@ -194,7 +194,7 @@ SignFlowController can dispatch WalletConnectFlowController when the user has no
 
 ## WalletConnectFlowController
 
-**Location:** `packages/react/src/flows/WalletConnectFlowController.js`
+**Location:** Powch's React layer, `WalletConnectFlowController` module
 
 Handles wallet selection, import, generation, and optional message signing. Triggered by `POWCH_CONNECT_WALLET` or as a sub-flow from SignFlowController.
 
@@ -266,7 +266,7 @@ When a new key is imported or generated, the flow creates a CRYPTO_WALLET card a
 
 ## ImportFlowController
 
-**Location:** `packages/react/src/flows/ImportFlowController.js`
+**Location:** Powch's React layer, `ImportFlowController` module
 
 Handles importing an existing private key. Used as a **standalone flow** (e.g. from hamburger) or as a **sub-flow** when the user selects "Import from backup" in WalletConnectView.
 
@@ -282,7 +282,7 @@ Import flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(c
 
 ## ExportPaperBackupFlowController
 
-**Location:** `packages/react/src/flows/ExportPaperBackupFlowController.js`
+**Location:** Powch's React layer, `ExportPaperBackupFlowController` module
 
 Handles exporting the recovery phrase (CloudKey as BIP-39 mnemonic). Triggers biometric via **PowchData.exportPaperBackup()**. Entry points: hamburger "Export Paper Backup", and inline in WalletManagerView Security tab.
 
@@ -297,7 +297,7 @@ Handles exporting the recovery phrase (CloudKey as BIP-39 mnemonic). Triggers bi
 
 ## PaymentFlowController
 
-**Location:** `packages/react/src/flows/PaymentFlowController.js`
+**Location:** Powch's React layer, `PaymentFlowController` module
 
 Handles payment flows. Currently stubbed for future implementation.
 

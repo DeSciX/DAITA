@@ -107,7 +107,7 @@ You oversee the DeSciX Cloud Broker that routes traffic and aggregates tools.
 
 2.  **Federated Discovery (`apiFront.js` → `buildPermissionFilteredToolList()`):**
     *   When a client calls `tools/list`, the Cloud:
-        1.  Loads the candidate universe — native tools plus external tools from `ServiceManifests` — from its one owner, `services/advertisableTools.js`.
+        1.  Loads the candidate universe — native tools plus external tools from `ServiceManifests` — from its one owner, the Cloud's `advertisableTools` module.
         2.  Filters it by the caller's permissions.
         3.  Applies the DISCOVERY-CORE fence, serving only the ratified handshake floor plus the caller's granted command names and discarding the rest.
         4.  Applies the OAuth read-only gate for public-internet OAuth callers.

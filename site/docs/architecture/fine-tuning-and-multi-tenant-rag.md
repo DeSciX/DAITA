@@ -396,12 +396,14 @@ AdminPanel.jsx
 
 ### Component Hierarchy
 
-| Component | File | Role |
-|-----------|------|------|
-| `FineTuningPanel` | `admin/FineTuningPanel.jsx` | Container: model selectors, cost estimate, split layout |
-| `QAPairEditor` | `admin/QAPairEditor.jsx` | Single Q&A card: checkbox, question/answer TextFields, save/delete |
-| `TuningPreviewChat` | `admin/TuningPreviewChat.jsx` | Chat widget: calls `preview_tuned_chat`, renders markdown responses |
-| `TuningJobMonitor` | `admin/TuningJobMonitor.jsx` | Start/poll/deploy: job list, progress bar, 30s polling interval |
+These are admin components of the DeSciX PWA.
+
+| Component | Role |
+|-----------|------|
+| `FineTuningPanel` | Container: model selectors, cost estimate, split layout |
+| `QAPairEditor` | Single Q&A card: checkbox, question/answer TextFields, save/delete |
+| `TuningPreviewChat` | Chat widget: calls `preview_tuned_chat`, renders markdown responses |
+| `TuningJobMonitor` | Start/poll/deploy: job list, progress bar, 30s polling interval |
 
 ---
 
