@@ -44,9 +44,9 @@ When running standalone, apps define these in `vite.config.js`.
 | App Type | Provider | Auth UI |
 |----------|----------|---------|
 | DeSciX PWA, standalone | `PowchBridgeProvider` + iframe | Powch iframe via `PowchSideBarWidget` |
-| Powch PWA | `PowchAppProvider` from `@powch/react` | Powch PWA owns its own UI |
+| Powch PWA | `PowchAppProvider`, in the Powch app's own React layer (not a published package) | Powch PWA owns its own UI |
 
-**DeSciX PWA does not use `@powch/react`.** It uses `usePowchBridge`, `PowchSideBarWidget`, `SignInButton` from app-sdk. Session hydration via `makeCommandRequestJSON` and `POWCH_LOGIN_COMPLETE` event.
+**DeSciX PWA does not use Powch's React layer.** It uses `usePowchBridge` and `PowchSideBarWidget` from `@descix/app-sdk`, and its own `SignInButton`. Session hydration via `makeCommandRequestJSON` and `POWCH_LOGIN_COMPLETE` event.
 
 ## State Flow
 

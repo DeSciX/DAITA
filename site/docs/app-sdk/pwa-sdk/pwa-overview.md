@@ -10,13 +10,13 @@ Powch is the **DeFi Banking + SSO layer** across DeSciX—one passkey-based iden
 
 - **Powch Authentication**: Passkey-based auth with zero-knowledge architecture
 - **Standalone-First**: Platform works standalone with optional Discord embedding
-- **Bridge-Based Auth**: DeSciX PWA does **not** use `@powch/react` directly
+- **Bridge-Based Auth**: the DeSciX PWA reaches Powch only through the bridge in `@descix/app-sdk`
 - **Event-Driven Architecture**: State changes flow through events, not direct mutations
 - **View Logic Centralization**: All view transitions go through `viewRouter()` in AppContext
 
 ## Authentication with Powch
 
-DeSciX uses Powch for all authentication and wallet operations. **The DeSciX PWA does not use `@powch/react` directly.** It defers all login and wallet flows to Powch via a bridge (postMessage to an embedded Powch iframe).
+DeSciX uses Powch for all authentication and wallet operations. **The DeSciX PWA does not import Powch's React layer, which is internal to the Powch app.** It defers all login and wallet flows to Powch via a bridge (postMessage to an embedded Powch iframe).
 
 ### Bridge-Based Auth
 
@@ -40,7 +40,7 @@ function SignInButton() {
 
 **Components:** `PowchSideBarWidget` (app-sdk) hosts the iframe; `SignInButton` and `TopNavBar` use `usePowchBridge()` for login/wallet actions.
 
-**Note:** `@powch/react` is used only by the Powch PWA and third-party apps. The DeSciX PWA never imports it; all auth UI lives in the Powch iframe.
+**Note:** Powch's React layer (`PowchAppProvider` and its views) is part of the Powch app, not a published package. Third-party apps reach Powch only through `@descix/app-sdk`: AppShell wires in `PowchBridgeProvider` and `PowchSideBarWidget`, and an app outside the shell uses `PowchClient` from `@descix/app-sdk/powch-client`. All auth UI lives in the Powch iframe.
 
 ## Architecture Overview
 
