@@ -1,8 +1,8 @@
 # SDK Architecture Reference
 
 **Status:** Implemented  
-**Version:** 2.1  
-**Last Updated:** June 2026
+**Version:** 2.0  
+**Last Updated:** January 2026
 
 This document is the canonical reference for the DeSciX SDK architecture, covering the CLI-centric KB processing pipeline, Drive synchronization, and folder structure conventions.
 
@@ -12,98 +12,55 @@ This document is the canonical reference for the DeSciX SDK architecture, coveri
 
 ### Core Philosophy
 
-1. **Git as Truth:** The local Git repository is the canonical source for processed text and code. KB content is versioned and synced via corpus manifests tracked in Git.
-2. **Drive as Raw Asset Store (server-side only):** Google Drive holds raw assets (PDFs, documents, images). Drive-to-Pinecone processing is a **server-side, PWA-only pipeline** — the CLI never triggers it.
-3. **Corpus Manifest as Sync Contract:** `descix kb corpus sync` reads `.descix/manifests/` corpus manifest files, walks Git blob SHAs to detect changes, and syncs only changed chunks to Pinecone.
+1. **Git as Truth:** The git repository — whatever files a corpus manifest names — is the
+   canonical source for what gets published to a knowledge base. There is no required KB folder.
+2. **Manifest-Driven Publish:** `descix kb corpus sync` walks the sources a manifest names at a
+   git ref, chunks what changed, and upserts/purges against Pinecone in one pass. This is the
+   ONE sync surface; there is no separate chunk step or push step for the developer to run.
+3. **Drive as an optional authoring front-end:** Google Drive is one way to *author* raw content
+   (PDFs, documents, images) before it lands in git — via `descix drive pull`/`descix drive push`
+   (ADC-based, client-side, no server-side proxy for the file transfer). It is not required, and
+   it is not itself a sync step — content still has to be committed and named in a manifest.
+4. **No Local Tools:** Drive-based conversion (OCR, Doc-to-Markdown) uses Drive's own capabilities
+   instead of bundling heavy local dependencies.
 
 ### Data Flow Summary
 
-**Git Mode (CLI — canonical):**
 ```
-Local Git (markdown + corpus manifest) → kb corpus sync → Backend API → Pinecone
-```
-
-**Drive Mode (server-side / PWA-only — never CLI-triggered):**
-```
-Google Drive → server-side pipeline → GCS → Pinecone
+Any git-tracked source, optionally authored via Drive:
+Drive (raw assets, optional) → CLI (pull + convert) → committed to git
+                                                              │
+                                            named in .descix/manifests/<KB>.json
+                                                              │
+                                                              ▼
+                                          descix kb corpus sync → Backend API → Pinecone
 ```
 
 ---
 
-## 2. Core Components
+## 2. Core Components (SDK internals — not a developer-facing API)
 
-All core SDK logic resides in `lib/core/` of the published `@descix/cli` package.
+These modules are internal to the CLI. A developer never calls them directly; they run underneath
+the CLI verbs below.
 
-### 2.1 Hydrator (`Hydrator.js`)
+### 2.1 Hydrator
 
-**Responsibilities:**
-- Pull content from Drive to local filesystem (via `descix drive pull`)
-- Push staging files to Drive (via `descix drive push`)
-- Convert files using Drive's native capabilities (PDF/Image → Google Doc → Markdown)
-- Conflict detection and resolution during hydration
+Drive-side operations, invoked by `descix drive pull` / `descix drive push`:
+- Pulls content from Drive to the local filesystem, converting Drive's native formats to Markdown
+  (PDF/DOCX/Image → temp Google Doc → Markdown export; Google Docs → direct Markdown export;
+  Sheets → CSV; plain text → downloaded as-is)
+- Pushes staging files to Drive
+- Also copies the `site`/`microservice` scaffold into an app (`descix site init` /
+  `descix microservice init`)
 
-**Key Functions:**
+### 2.2 Chunker and Syncer
 
-| Function | Description |
-|----------|-------------|
-| `hydrateWorkspace(root, config, driveConfig, options)` | Full workspace setup with folder creation and Drive sync |
-| `hydrateApp(config, options)` | Pull entire app from Drive |
-| `hydrateKb(config, options)` | Pull and convert KB files from Drive |
-| `pushStaging(config, options)` | Upload files from `kb/staging/` to Drive |
-| `convertAndSave(driveFile, localDir)` | Convert and save a single file |
-
-**Drive-Native Conversion Logic:**
-1. PDF/DOCX/Images: Copy with `convert=true` → Creates temp Google Doc → Export as Markdown → Delete temp doc
-2. Google Docs: Export directly as `text/markdown`
-3. Google Sheets: Export as `text/csv`
-4. Plain text files: Download as-is
-
-### 2.2 Chunker (`Chunker.js`)
-
-**Responsibilities:**
-- Chunk documents for RAG embedding
-- Support multiple chunking strategies (semantic, sliding window)
-- Generate chunk records with metadata for Pinecone
-
-**Key Functions:**
-
-| Function | Description |
-|----------|-------------|
-| `categorizeFile(fileName, mimeType)` | Detect file type (code/docs/papers/generic) |
-| `chunkFile(fileInfo, options)` | Chunk a file based on its type |
-| `chunkDocument(content, metadata, rules)` | Markdown-aware section-based chunking |
-| `processKb(config, options)` | Process entire KB directory into chunks |
-| `loadChunks(config)` | Load all chunks from JSON files |
-
-**Chunking Parameters (defaults):**
-- `maxChunkSize`: 2000 characters
-- `maxCodeFileSize`: 8000 characters
-- `overlapSize`: 500 characters
-
-**Chunking Strategies:**
-- **Documents:** Split by Markdown headers (`#`, `##`, `###`) with overlap
-- **Code:** Split by logical boundaries (functions, classes, contracts)
-- **Generic:** Sliding window with overlap
-
-### 2.3 Syncer (`Syncer.js`)
-
-**Responsibilities:**
-- Sync local chunks to Pinecone via backend API
-- Compute delta between local and remote chunks
-- Manage chunk lifecycle (upsert/delete)
-
-**Key Functions:**
-
-| Function | Description |
-|----------|-------------|
-| `syncKb(apiClient, config, options)` | Full sync workflow (delta + upsert + delete) |
-| `computeChunkDelta(localChunks, remoteIds)` | Compare local vs remote chunks |
-| `getRemoteChunkIds(apiClient, communityId, appId, kbId)` | Get existing chunk IDs from Pinecone |
-| `upsertChunks(apiClient, ...)` | Push chunks to backend |
-| `deleteStaleChunks(apiClient, ...)` | Remove deleted chunks |
-| `getSyncStatus(apiClient, config)` | Check sync state |
-
-**Security Note:** The CLI never communicates with Pinecone directly. All chunk operations go through the backend API, which validates metadata and manages Pinecone credentials.
+Invoked by `descix kb corpus sync`, never called separately: chunk documents (Markdown-aware
+section splitting, with a code-aware and a generic sliding-window strategy for non-Markdown files),
+then upsert/delete against Pinecone via the backend API — computing the delta between what the
+manifest's git walk found and what is already indexed. **The CLI never communicates with Pinecone
+directly.** All chunk operations go through the backend API, which validates metadata and manages
+Pinecone credentials.
 
 ---
 
@@ -118,29 +75,35 @@ All core SDK logic resides in `lib/core/` of the published `@descix/cli` package
 │   ├── app_description.md
 │   └── system_instructions.md
 ├── .descix/
-│   ├── manifests/              # Corpus manifests — one per KB, e.g. General.json
-│   │   └── General.json
-│   └── sync-state/             # Per-KB sync state written by `kb corpus sync`
-├── docs/                       # Your own markdown, wherever you keep it
-│   ├── research.md
-│   └── notes.md
+│   └── manifests/
+│       └── General.json        # Corpus manifest — names the KB's git-tracked sources
+├── kb/                          # OPTIONAL — content can live anywhere; kb/ is a common convention
+│   ├── staging/                # (if using Drive) Local files to push to Drive
+│   │   └── research.pdf
+│   └── General/                # (if using Drive) Text-converted mirror of Drive
+│       ├── research.md         # Converted from PDF
+│       └── notes.md            # Converted from Google Doc
 ├── site/                       # Static site files (push-only)
-│   └── index.html
+│   ├── index.html
+│   └── DeSciXAppSDK.js         # The DeSciX bridge (generated)
 └── microservice/               # Service code (push-only)
-    └── src/index.js
+    ├── app.js                  # Entry point
+    └── services/               # Service code — there is no src/
 ```
+
+Chunking happens in memory during `descix kb corpus sync` — there is no persisted `kb/chunks/`
+folder of JSON chunk files to manage.
 
 ### Folder Purposes
 
 | Folder | Sync Direction | Purpose |
 |--------|----------------|---------|
 | `assets/` | Bidirectional | App metadata (icon, description, instructions) |
-| `.descix/manifests/` | Local only | Corpus manifests — the declaration of which files belong to which KB |
-| `.descix/sync-state/` | Local only | What the last `kb corpus sync` walked, per KB |
+| `.descix/manifests/<KB>.json` | Local, git-tracked | Names the sources `descix kb corpus sync` walks — REQUIRED for a KB to sync |
+| `kb/staging/` | Local → Drive (optional) | Raw files waiting to be pushed via `descix drive push` |
+| `kb/General/` | Drive → Local (optional) | Text-converted files from `descix drive pull` |
 | `site/` | Local → GCS | Static site deployment |
 | `microservice/` | Local → GCS | Backend service deployment |
-
-**KB content has no required directory.** Source files stay where they live in your repo; a corpus manifest at `.descix/manifests/<KB>.json` names them by path. There is no `kb/<KB>/` convention to copy files into — `descix kb corpus sync` reads the manifest, and with no manifest it fails naming the directory it looked in.
 
 ### Configuration Files
 
@@ -148,58 +111,54 @@ All core SDK logic resides in `lib/core/` of the published `@descix/cli` package
 
 ```json
 {
-  "version": "2.1",
-  "workspaceRoot": "<absolute path to your workspace>",
+  "version": "3.0",
   "type": "workspace",
+  "workspaceRoot": "/path/to/daita-agent-repo",
   "env": {
-    "environment": "DEV",
-    "apiUrl": "https://dev.descix.net",
-    "products": [
-      {
-        "appId": "<your app id>",
-        "localPath": "<path to the app, relative to workspaceRoot>",
-        "kbId": "General",
-        "site": {
-          "port": 3000,
-          "devCommand": "npm run docs:dev"
-        },
-        "microservice": {
-          "port": 4001,
-          "devCommand": "npm run start"
-        }
-      }
-    ]
-  }
+    "environment": "PROD",
+    "apiUrl": "https://descix.net",
+    "gateway": { "port": 5599 },
+    "app": {
+      "appId": "daita-agent",
+      "communityId": "daita",
+      "kbId": "General",
+      "site": { "port": 3000 },
+      "microservice": { "port": 4001 }
+    }
+  },
+  "driveConfig": { "base_folder_id": "1ABC..." }
 }
 ```
 
-A file carrying a top-level `communities` block and no `env` block is the v1 format; the CLI refuses it by name rather than reading it. So is a top-level `apiUrl` — the origin is read from `env.apiUrl` only, and is set with `descix config init --env dev|demo|prod` or `descix config set-env <env>`.
+Every key is written by a CLI verb (`descix config init --env …`, `descix app init`, `descix app set-site`, `descix app set-port`, …) — see `workspace-config.md` for the key → verb table. One repo holds one app (`env.app`), and the repo root is the workspace root. A `communities` block without `env` (the v1 shape) and an `env.platform` / `env.products` block (the v2.1 multi-app shape) are refused on load.
 
-**Note:** `.descix.app/context.json` files are no longer used. All app configuration is stored in `workspace.json`. The CLI auto-detects app context from the current working directory by matching against registered app paths.
+**Note:** `.descix.app/context.json` files are no longer used. All app configuration is stored in `workspace.json`. The CLI auto-detects the app (`env.app`) when the current working directory is the repo root or below it.
 
 ---
 
 ## 4. CLI Commands
 
-### 4.1 KB Corpus Sync (`descix kb corpus`) — Canonical Sync Path
+The DeSciX CLI publishes content with one verb per plane. Each command resolves app context from `workspace.json` based on the current working directory, or takes `-a <app_id>` explicitly.
 
-`descix kb corpus sync` is the **one canonical KB sync path**. It reads corpus manifests from `.descix/manifests/`, walks Git blob SHAs to detect changed files, chunks only changed content, and upserts/deletes vectors in Pinecone via the backend API.
-
-| Command | Description |
-|---------|-------------|
-| `descix kb corpus sync -a <app_id>` | Sync KB to Pinecone via corpus manifest (delta, git-aware) |
-| `descix kb corpus sync --rebuild` | Reconcile against REMOTE file_ids when the local sync-state is untrustworthy — plain `sync` already purges deleted files (prompts; `--yes` to skip) |
-| `descix kb corpus sync --dry-run` | Report what would change without writing |
-| `descix kb corpus status -a <app_id>` | Show last sync commit, file counts, chunk counts, and git diff since last sync |
-| `descix kb doctor -a <app_id> -k <kb>` | Drift detection: live Pinecone vector count vs local sync state; exits 1 if drift exceeds threshold |
-
-### 4.2 Other KB Commands (`descix kb`)
+### 4.1 Publish Commands
 
 | Command | Description |
 |---------|-------------|
-| `descix kb list -a <app_id>` | List KBs for an app (names, model overrides, vector counts, last-sync dates) |
+| `descix app sync-assets` | Sync app assets (`system_instructions.md`, `app_description.md`, `icon.png`) to the platform |
+| `descix kb corpus sync` | Sync a knowledge base from the git files its manifest names to Pinecone |
+| `descix site upload` | Deploy the site to GCS and record its path on the app |
 
-There is no step-by-step local pipeline to drive by hand: `kb corpus sync` chunks in memory and upserts in one pass. `kb chunk`, `kb sync`, `kb build`, `kb status`, `kb compare` and the top-level `descix sync` are removed — invoking any of them errors and names `kb corpus sync` as the replacement.
+### 4.2 KB Commands (`descix kb`, `descix drive`)
+
+| Command | Description |
+|---------|-------------|
+| `descix kb create -a <app_id> --kb <kb_name>` | Create a knowledge base on an existing app (refuses one that already exists) |
+| `descix kb corpus sync` | Sync the manifest's git files to Pinecone |
+| `descix kb corpus status` | Show corpus sync state (files, chunks, last sync, resolved ref) |
+| `descix kb list` | List knowledge bases for an app |
+| `descix kb delete` | Delete a knowledge base (refuses a non-empty KB unless `--force`) |
+| `descix drive pull` | Pull content from Drive and convert to local markdown |
+| `descix drive push` | Push staging files to Drive |
 
 ### Scaffold Commands
 
@@ -207,11 +166,11 @@ There is no step-by-step local pipeline to drive by hand: `kb corpus sync` chunk
 |---------|-------------|
 | `descix site init` | Copy site template to current app's `site/` folder |
 | `descix site upload` | Deploy site to GCS |
-| `descix app set-site -a <app_id> --port <port>` | Register the local dev-server port for the app's site (`env.products[].site.port`) |
+| `descix app set-site -a <app_id> --port <port>` | Register the local dev-server port for the app's site (`env.app.site.port`) |
 | `descix microservice init` | Copy microservice template to current app's `microservice/` folder |
-| `descix microservice register` | Register microservice with gateway |
+| `descix microservice register -r SERVICE_README.md` | Register microservice AND vectorize the README for `tell_me_how` discovery, in one step |
 
-**Note:** Site and microservice commands are Git-based code operations on code (HTML, JS, Dockerfile, etc.); app content and KB sources are handled by `assets/` and the corpus manifest.
+**Note:** Site and microservice commands are Git-based code operations. Drive templates contain content (assets, KB), while site/microservice commands handle code (HTML, JS, Dockerfile, etc.).
 
 ### Common Options
 
@@ -222,21 +181,18 @@ There is no step-by-step local pipeline to drive by hand: `kb corpus sync` chunk
 | `-k, --kb <id>` | KB name (default: General) |
 | `-v, --verbose` | Show detailed output |
 
-### Setup Commands
+### Setup Command
 
 ```bash
-descix quickstart -c <community_id> -a <app name>
+descix quickstart
 ```
 
-`quickstart` is the one-command path: sign in → workspace → app → agent instruction files → MCP config. The same steps run individually:
-
-| Command | Description |
-|---------|-------------|
-| `descix login` | Device login in the browser, via Powch |
-| `descix init` | Initialize the workspace (`.descix/workspace.json`) for app development |
-| `descix app init -c <community_id> -a <app name>` | Create the app record + its default KB, register it in the workspace, and scaffold its folders |
-| `descix doctor` | Diagnose environment issues (Node, auth, gcloud, ADC) |
-| `descix status` | Show the state of the developer environment |
+Flow:
+1. Device login in the browser (skipped when `.descix/wallet.json` holds a valid session)
+2. Create `.descix/workspace.json` (skipped when a workspace already exists up the tree)
+3. Write agent instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`, `.cursorrules`, `.clinerules`)
+4. Write `.vscode/mcp.json` (skipped when the DeSciX extension handles MCP)
+5. Copy the SDK agent assets to `.descix/sdk-assets/` (fails loud if the package's assets are missing)
 
 ---
 
@@ -259,7 +215,7 @@ descix quickstart -c <community_id> -a <app name>
   "kb_id": "General",
   "chunks": [
     {
-      "id": "descix_agent_General_research_0",
+      "id": "daita_agent_General_research_0",
       "text": "...",
       "entity_type": "CHUNK",
       "community_id": "daita",
@@ -285,22 +241,22 @@ The platform uses **Pinecone Integrated Embeddings**:
 CLI → kb_sync_chunks API → pineconeService.upsertChunkRecords() → Pinecone (embeds + stores)
 ```
 
-### RAG Query
-
-The canonical backend command for querying a KB is `ask_question_to_app`. The CLI surface is `descix chat`.
-
 ---
 
 ## 6. Data Flows
 
-### Git-Mode KB Sync (Canonical)
+### Publish Cycle
 
 ```mermaid
 flowchart LR
-    subgraph local [Local Filesystem]
-        sources[your markdown, anywhere in the repo]
-        manifests[.descix/manifests/]
-        syncstate[.descix/sync-state/]
+    subgraph drive [Google Drive — optional authoring]
+        driveKb[Drive folder]
+    end
+
+    subgraph local [Local Git repo]
+        staging[kb/staging/ — optional]
+        docs[docs (or any git-tracked path)]
+        manifest[".descix/manifests/&lt;KB&gt;.json"]
     end
 
     subgraph backend [Backend]
@@ -308,20 +264,30 @@ flowchart LR
         pinecone[Pinecone]
     end
 
-    manifests -->|"kb corpus sync (git blob SHA walk)"| sources
-    sources -->|"chunk changed files"| api
-    syncstate -->|"delta: only changed since last sync"| api
+    staging -->|"descix drive push"| driveKb
+    driveKb -->|"descix drive pull (convert)"| docs
+    docs -->|"named as a source in"| manifest
+    manifest -->|"descix kb corpus sync (walk + chunk in memory + upsert)"| api
     api --> pinecone
 ```
 
-### Typical Developer Workflow
+### Detailed Flow
 
-1. **Declare:** List the source files in `.descix/manifests/<KB>.json` (schema: [corpus-manifest-schema.md](../architecture/corpus-manifest-schema.md))
-2. **Edit:** Add or update those markdown files where they already live
-3. **Sync:** `descix kb corpus sync -a <app_id>` — detects changed files via git blob SHAs, chunks them, upserts to Pinecone; deletes vectors for removed files
-4. **Verify:** `descix kb corpus status -a <app_id>` or `descix kb doctor -a <app_id> -k General`, then ask a question with `descix chat -a <app_id> --new`
-
-The sync walks git blobs at the manifest's `ref` (default `main`), not your working tree. An edit on an unmerged branch re-syncs as unchanged unless you pass `--ref <branch>`. Use `--dry-run` to see what a sync would add and remove before it writes.
+1. **(Optional) Stage:** User adds `paper.pdf` to `kb/staging/`
+2. **(Optional) Push:** `descix drive push` uploads to a Drive folder
+3. **(Optional) Pull:** `descix drive pull` downloads and converts:
+   - Sees `paper.pdf` in Drive
+   - Copies with `convert=true` → temp Google Doc
+   - Exports as Markdown → local `paper.md`
+   - Deletes temp doc
+4. **Commit + name:** commit `paper.md` and name its folder as a source in
+   `.descix/manifests/<KB>.json` (skip steps 1-3 entirely if the content already lives in git —
+   Drive is optional)
+5. **Sync:** `descix kb corpus sync` does the rest in one pass:
+   - Walks the manifest's sources at a git ref, chunking each file in memory (nothing is written
+     to disk)
+   - Pushes changed chunks to the backend, which validates metadata and forwards to Pinecone
+   - Purges any chunk that is live in Pinecone but no longer in the manifest's walk
 
 ---
 
@@ -337,7 +303,6 @@ gcloud auth application-default login \
 ```
 
 **Verification:**
-- `descix doctor` reports gcloud and ADC status
 - `Hydrator` calls `verifyDriveAuth()` before operations
 
 ### Backend Authentication
@@ -350,50 +315,20 @@ CLI authenticates to backend via device login:
 
 ---
 
-## 8. Migration Notes
-
-### From `kb/src/` to `kb/staging/`
-
-The v2 architecture renamed `kb/src/` to `kb/staging/` for clarity. The Hydrator includes automatic migration:
-
-```javascript
-// If old kb/src/ exists, rename to kb/staging/
-const oldSrcDir = path.join(kbBaseDir, 'src');
-if (await exists(oldSrcDir)) {
-  await rename(oldSrcDir, stagingDir);
-}
-```
-
-### Git Mode vs Drive Mode
+## 8. Git Mode vs Drive Mode
 
 Apps operate in one of two modes, determined by how they are managed:
 
 | Mode | Source of Truth | Versioning | User Type | Tool |
 |------|-----------------|------------|-----------|------|
-| **Git** | Local Git repo | Git | Developers | CLI (`descix kb corpus sync`) |
-| **Drive** | Google Drive | GCS/Firestore | Non-developers | PWA only (server-side pipeline) |
+| **git** | Local Git repo | Git | Developers | CLI (`descix kb corpus sync`, `descix drive pull/push`) |
+| **drive** | Google Drive | GCS/Firestore | Non-developers | PWA only |
 
-**Important:** The CLI only supports **Git-mode** operations. Drive-mode apps are managed entirely through the PWA with server-side processing. There is no CLI flag to switch modes — if you're using the CLI, you're in Git mode.
+**Important:** The CLI only supports **git-mode** operations. Drive-mode apps are managed entirely through the PWA with server-side processing. There is no CLI flag to switch modes - if you're using the CLI, you're in git-mode.
 
-Both modes can source content from Google Drive. The difference is:
-- **Git mode:** the developer keeps markdown in the repo, declares it in a corpus manifest, and syncs via `descix kb corpus sync`
-- **Drive mode:** PWA triggers a server-side pipeline (Drive → GCS → Pinecone) automatically — the CLI is never involved
-
----
-
-## 9. File References
-
-Paths are inside the published `@descix/cli` package. The server-side KB processing, the Pinecone service and Drive-mode chunking run in the DeSciX Cloud service, which is not a published package.
-
-| Component | Path | Description |
-|-----------|------|-------------|
-| WorkspaceConfig | `lib/workspace-config.js` | Sole configuration class |
-| GlobalConfig | `lib/global-config.js` | User-level settings (~/.descix) |
-| Hydrator | `lib/core/Hydrator.js` | Drive sync operations |
-| Chunker | `lib/core/Chunker.js` | KB chunking |
-| Syncer | `lib/core/Syncer.js` | Pinecone sync |
-| ManifestLoader | `lib/core/ManifestLoader.js` | Corpus manifest loading and validation |
-| Corpus Commands | `lib/commands/corpus.js` | Canonical KB corpus sync |
-| Workspace Init | `lib/commands/init.js` | Workspace initialization |
-| App Init | `lib/commands/appInit.js` | App record, default KB, scaffold |
-| Drive ADC | `lib/google-storage-adc.js` | Google Drive API wrapper |
+Git mode does not require Drive at all: content can be authored directly in the repo. Drive is one
+optional way to bring raw content (PDFs, images) in as converted Markdown, via `descix drive pull`.
+- **Git mode**: developer commits content (optionally pulled from Drive first), names it in a
+  corpus manifest, and `descix kb corpus sync` publishes it
+- **Drive mode**: PWA triggers a server-side pipeline (Drive → GCS → Pinecone) automatically; the
+  CLI never triggers it
