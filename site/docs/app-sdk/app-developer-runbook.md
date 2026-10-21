@@ -449,7 +449,8 @@ pins a corpus source: `doc_ids` naming one refuses the turn with
 ## 6. Knowledge bases
 
 Each KB is fed from **git**, by a manifest at `.descix/manifests/<kb_name>.json`. `path` is
-relative to the repository root; `ref` is the git ref the sync walks (default `main`):
+relative to the repository root; `ref` is the git ref each file's blob sha is read from
+(default `main`):
 
 ```json
 {
@@ -463,9 +464,15 @@ relative to the repository root; `ref` is the git ref the sync walks (default `m
 
 Three rules that save you an afternoon:
 
-- **Only committed files sync.** The sync takes each file's content at the manifest `ref`; a
-  tracked file edited but not committed is silently treated as unchanged. Sync from a clean,
-  pulled `main` (`git status --short` empty), or pass `--ref <branch>` for a branch.
+- **Sync from a clean checkout of the ref itself.** The sync reads the manifest, the list of
+  files and their text from your working tree; only each file's blob sha comes from the `ref`
+  (`git rev-parse <ref>:<path>`), and that sha is the chunk's id. A file the `ref` does not track
+  refuses the whole sync, naming it. A file whose sha this checkout's last sync recorded (in
+  `.descix/sync-state/`) is skipped as unchanged, so an uncommitted edit to it is not sent; any
+  other file is sent with its working-tree text under the `ref`'s sha. `--ref <branch>` changes
+  only where the shas come from, never which text is read. So check out the ref you sync
+  (`git switch main && git pull`), confirm `git status --short` is empty, and pass
+  `--ref <branch>` only when that branch is the one checked out.
 - **A manifest for a KB the platform does not know is refused**, dry run included. The refusal
   names the fix on a `Fix: run` line: `descix kb create -a <app_id> --kb <kb_name>`.
 - **`--dry-run` exits 1 when there is drift. That is normal before a sync** — read the `Drift:`
@@ -481,6 +488,45 @@ The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at the
 and the plan (`Would-upsert chunks: <n>`, `Would-delete refs: <n>`). The real sync upserts what
 changed and purges what you deleted; a plain re-run is always safe. `descix kb list -a <app_id>`
 shows every KB with its live vector count (`Source` column `live`).
+
+**What a source skips: `syncignore`.** Each source may carry `"syncignore": [<glob>, …]`. Every
+entry the walk meets is tested with `minimatch` (`dot: true`, case-sensitive) twice: against
+its path relative to the source folder and against its bare name. A folder that matches is not
+entered, so its whole subtree is skipped. Under the source `08_LEAN`, `"Archive/**"` skips
+`08_LEAN/Archive/` and everything in it, but not `08_LEAN/Sub/Archive/`; the bare name
+`"Archive"` skips an `Archive` folder at any depth, and `"*.test.js"` skips that file name at any
+depth. The walk reads only text files whose extension is in `PROCESSABLE_EXTENSIONS`
+(`lib/core/CorpusWalker.js` in `@descix/cli`, the one owner of that list); `syncignore` narrows
+those.
+
+**Publishing a KB (Tier-P).** The manifest's `publish_tier` is `"P"`, `"I"` or `"U"`; absent
+means `"I"`. A `"P"` manifest is a publishing act, and before any walk or upload the sync checks
+it:
+
+- every source must carry a `doc_class` from the publishable set; a missing one, a deny-class or
+  an unknown one refuses the manifest by name;
+- the deny check tests each source's own `path` against the deny path patterns
+  (`DENY_PATH_PATTERNS` in the CLI's `lib/core/CorpusDenyLint.js`), and for a source that is a
+  single file it also checks the file is not empty and reads its text for active-draft markers
+  and a debate-context header. A source that is a folder is checked by its `path` only: the files
+  inside it are not checked one by one, so list files as sources in a Tier-P manifest;
+- a `primary-source` source needs a `license_basis`;
+- `lint_exempt: ["<class>"]` with `exempt_reason` exempts a source from a named deny pattern; the
+  sync prints every exemption and warning, then refuses on any violation, naming each, before
+  anything is uploaded.
+
+```json
+{
+  "kb_name": "<kb_name>",
+  "publish_tier": "P",
+  "sources": [
+    { "path": "docs/guide.md", "ref": "main", "doc_class": "guide" }
+  ]
+}
+```
+
+Each chunk carries its source's `doc_class`. The full field reference is
+[corpus-manifest-schema.md](../architecture/corpus-manifest-schema.md).
 
 **A second KB on an existing app** is created with `descix kb create`, which needs
 `@descix/cli` 4.1.0 or later:
@@ -826,7 +872,7 @@ npx -y -p @descix/cli@4.2.0 descix whoami                              # 3  gate
 npx -y -p @descix/cli@4.2.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
 npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
 npx -y -p @descix/cli@4.2.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@4.2.0 descix kb corpus sync -a <app_id>          # 7  committed files → index (dry-run first)
+npx -y -p @descix/cli@4.2.0 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
 npx -y -p @descix/cli@4.2.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
 npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
 npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id>             # 10 then: served==built hash check
