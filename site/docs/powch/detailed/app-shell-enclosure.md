@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - **Outer shell:** DeSciX PWA (App.jsx, AppContext, AppData) — the main browser window
-- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` (e.g. https://powch.descix.net/ or https://localhost:5174/)
+- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` (https://powch.descix.net/ on PROD, https://powch.dev.descix.net/ on DEV; a local build takes the URL `resolvePowchUrl` returns)
 - **Inner shell:** The iframe loads the Powch PWA — its own root app (PowchStandaloneApp) with its own isolated shell surface; standalone binding is runtime (`descix serve` / edge), never a build-time app id
 - **Two app shells:** Host owns the iframe; Powch has its own isolated Shell (session, makeCommandRequestJSON, window.DeSciX) inside the iframe
 - **Communication:** postMessage via PowchBridgeClient / PowchSideBarWidget
@@ -90,10 +90,10 @@ flowchart TB
 
 | Case | Host | Powch Content |
 |------|------|---------------|
-| 1, 2 | PowchSideBarWidget renders iframe; uses PowchBridgeProvider, usePowchBridge (no @powch/react) | iframe src = Powch PWA URL; loads PowchStandaloneApp inside Shell |
-| 3 | Powch PWA root (its own App) | Imports PowchStandaloneApp from @powch/react; renders in-process |
+| 1, 2 | PowchSideBarWidget renders iframe; uses PowchBridgeProvider, usePowchBridge (not Powch's React layer) | iframe src = Powch PWA URL; loads PowchStandaloneApp inside Shell |
+| 3 | Powch PWA root (its own App) | Imports PowchStandaloneApp from its own React layer; renders in-process |
 
-**Distinction:** Cases 1 and 2: DeSciX PWA host uses the bridge (PowchBridgeProvider, PowchSideBarWidget, usePowchBridge)—never `@powch/react`. Case 3: Powch PWA uses `@powch/react` (PowchAppProvider, PowchStandaloneApp, usePowch) because it is the identity provider.
+**Distinction:** Cases 1 and 2: DeSciX PWA host uses the bridge (PowchBridgeProvider, PowchSideBarWidget, usePowchBridge)—never Powch's React layer. Case 3: the Powch PWA uses its own React layer (PowchAppProvider, PowchStandaloneApp, usePowch) because it is the identity provider.
 
 ---
 

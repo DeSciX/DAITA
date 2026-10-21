@@ -162,7 +162,7 @@ Signing is exposed by PowchData (`signTransaction`, `signMessage`, `signTypedDat
 
 ## Constants
 
-Exported from PowchData and re-exported from `@powch/react`:
+Exported from PowchData and re-exported by `PowchAppProvider` in Powch's React layer:
 
 ```javascript
 // App states
