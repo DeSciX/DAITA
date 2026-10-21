@@ -39,8 +39,20 @@ npx -y -p @descix/cli@4.2.0 descix <command>
   (`"devDependencies": { "@descix/cli": "4.2.0" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
+- Read a command's flags from the CLI itself: `descix <group> <command> --help` prints that
+  command's own options at any depth. A command that does not exist exits 1, naming it and the
+  commands that do: `error: unknown command 'uplod'` then `'descix site' has: delete, init,
+  list, status, upload`.
 
 **Verify:** `npx -y -p @descix/cli@4.2.0 descix --version` prints `4.2.0`.
+
+`@descix/app-sdk` 0.6.0 is the library your site code imports. Its entry points are
+`@descix/app-sdk` (the React components, among them `AppShell`, `AppProvider`, `PowchClient`,
+`VIEW_MODES` and `requestView`), `@descix/app-sdk/AppShell`, `@descix/app-sdk/AppData`,
+`@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/dev` and
+`@descix/app-sdk/scaffold`; its peer dependencies are `react` and `react-dom` `^18.0.0 || ^19.0.0`.
+A plain HTML site uses the `DeSciXAppSDK.js` script that `descix site init` copies in (§5.2)
+instead.
 
 ## 3. Pin production, then sign in
 
@@ -209,6 +221,146 @@ jq '.description | length' .claude-plugin/plugin.json
 grep -n '^description:.*[<>]' skills/*/SKILL.md
 ```
 
+#### The marketplace that lists it
+
+A user installs a plugin from a marketplace: a git repository with
+`.claude-plugin/marketplace.json` at its root. A community's marketplace is its community
+repository; `DeSciX/DAITA` lists two plugins, one vendored and one from another repository:
+
+```json
+{
+  "name": "daita",
+  "owner": { "name": "DeSciX", "url": "https://github.com/DeSciX" },
+  "metadata": { "description": "<the marketplace's description>", "version": "0.1.0" },
+  "plugins": [
+    {
+      "name": "daita",
+      "source": "./plugins/daita",
+      "description": "<the plugin's description, at most 500 characters>",
+      "category": "science"
+    },
+    {
+      "name": "daita-beast",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/DeSciX/daita-beast.git",
+        "path": "plugin",
+        "ref": "1.6.2"
+      },
+      "description": "<the plugin's description, at most 500 characters>",
+      "version": "1.6.2"
+    }
+  ]
+}
+```
+
+What `claude plugin validate` (Claude Code 2.1.269) accepts and refuses:
+
+- `name`, `owner` (an object) and `plugins` are required, and every plugin entry needs `name`
+  and `source`. A missing `owner` fails with `owner: Invalid input`. The marketplace's
+  `description` and `version` go under `metadata`.
+- A source inside the repository starts with `./` and resolves from the marketplace root (the
+  directory that holds `.claude-plugin/`). A bare name fails: `Bare source name "p1" requires
+  metadata.pluginRoot. Use "./relative/path", or set metadata.pluginRoot (e.g. "./plugins") to
+  allow bare names.` A path containing `..` fails.
+- In `plugin.json`, `agents` is an array of agent files (`["./agents/<name>.md"]`), or absent for
+  the default `agents/` folder. A folder string (`"agents": "./agents"`) fails with
+  `agents: Invalid input`.
+
+Install copies only the plugin's own directory, into
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`, so a file a skill or agent names
+outside its plugin is not there after install. A user holds one marketplace per name: adding a second marketplace with
+the same `name` replaces the first without a warning, so a local test marketplace takes a name of
+its own.
+
+**Verify:** `claude plugin validate <marketplace directory>` prints `✔ Validation passed` and
+exits 0; a manifest error exits 1, and `--strict` also exits 1 on a warning. It checks neither
+the two claude.ai limits above nor whether a source can be fetched.
+
+#### Vendored or `git-subdir`
+
+A vendored plugin lives inside the marketplace repository (`"source": "./plugins/daita"`). A
+`git-subdir` source names a folder of another repository by `url` and `path`, pinned by `ref`,
+and install clones it. A repository the installer's git cannot read passes `claude plugin
+validate` and `claude plugin marketplace add`, then fails the install with exit 1:
+`Failed to clone repository for git-subdir source` followed by git's `remote: Repository not
+found.` A public marketplace therefore takes a `git-subdir` source only from a public
+repository; a plugin whose repository is private is vendored into the marketplace.
+
+#### Installing it in Claude Code
+
+```bash
+claude plugin marketplace add <owner>/<repo>      # a GitHub repo, a git URL or a local path
+claude plugin install <plugin>@<marketplace>
+claude plugin list
+```
+
+- `marketplace add <owner>/<repo>` clones from GitHub, over HTTPS when SSH is not configured
+  (`SSH not configured, cloning via HTTPS`).
+- `install` defaults to `--scope user` and writes `"enabledPlugins": { "<plugin>@<marketplace>":
+  true }` into `~/.claude/settings.json`.
+- An HTTP server in the plugin's `.mcp.json` registers with the plugin: after
+  `claude plugin install daita@daita`, `claude mcp list` prints
+  `plugin:daita:descix: https://descix.net/mcp (HTTP) - ! Needs authentication` until the user
+  signs in (`claude mcp login <name>`).
+- `claude --plugin-dir <path>` loads a plugin from a directory or a `.zip` for that session only,
+  with no marketplace; a folder of plugins loads each child.
+
+#### Updating an installed plugin: a reload is not an update
+
+A session loads the version recorded for the plugin in `~/.claude/plugins/installed_plugins.json`.
+Refreshing the marketplace does not move that record; `claude plugin update` does:
+
+```bash
+claude plugin marketplace update <marketplace>    # refreshes the catalog; the installed version stays
+claude plugin update <plugin>@<marketplace>       # moves the installed version
+```
+
+```
+✔ Plugin "<plugin>" updated from 0.1.0 to 0.2.0 for scope user. Restart to apply changes.
+```
+
+The new version loads in the next session or reload; a reload alone loads the recorded version
+and never updates it. A second `update` prints `✔ <plugin> is already at the latest version
+(0.2.0).` `update` acts on one scope, `user` by default: a plugin installed with
+`--scope project` needs `claude plugin update <plugin>@<marketplace> -s project`, and without it
+the update fails with `Plugin "<plugin>" is not installed at scope user` (exit 1).
+
+**Verify:** `claude plugin list` shows `Version: <new version>` under `<plugin>@<marketplace>`.
+
+#### Enabling it for one repository
+
+Install with `--scope project` from the repository root:
+
+```bash
+claude plugin marketplace add DeSciX/DAITA --scope project
+claude plugin install daita@daita --scope project
+```
+
+Both commands write the repository's `.claude/settings.json`; `extraKnownMarketplaces` says
+where the marketplace is and `enabledPlugins` turns the plugin on. Commit the file so every clone
+carries both keys:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "daita": { "source": { "source": "github", "repo": "DeSciX/DAITA" } }
+  },
+  "enabledPlugins": { "daita@daita": true }
+}
+```
+
+#### The connector, for claude.ai and any MCP client
+
+A plugin's DeSciX tools come from the DeSciX connector, `https://descix.net/mcp`, a remote HTTP
+MCP server that signs the user in with OAuth: an unauthenticated request answers `401` with
+`www-authenticate: Bearer resource_metadata="https://descix.net/.well-known/oauth-protected-resource"`.
+Without a plugin, Claude Code registers it with
+`claude mcp add --transport http descix https://descix.net/mcp`, after which `claude mcp list`
+prints `descix: https://descix.net/mcp (HTTP) - ! Needs authentication` until sign-in.
+`https://descix.net/connect` is the sign-in page the browser opens, not an MCP server; a
+connector pointed at it does not work.
+
 ## 5. Run it locally: `descix serve`
 
 First declare how your site is served. One write sets one mode, and each write clears the other
@@ -232,6 +384,8 @@ npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static site
 - `--port <n>` routes to a framework dev server (Vite, VitePress, Next) instead; `site.protocol`
   (`http` or `https`) names the scheme the gateway uses to reach it, for dev servers that insist
   on one. Set the framework's base path to `/p/<app_id>/` — the gateway does not rewrite paths.
+- `--static` and `--port` in one call keep both, and the gateway serves the dev server.
+  `--unset` clears `site.static`, `site.port` and `site.protocol`.
 - A configured route whose backend is not answering fails loud with a 502 that names the target,
   not a silent blank page.
 
@@ -247,7 +401,8 @@ holds. From outside the checkout, name both the workspace and the app:
 `descix serve -w <repo root> -a <app_id>`. With `-w` and no `-a`, serve exits 1 with
 `[serve binding] cannot tell which app to serve from <current directory>` and lists the apps in
 the workspace. The port resolves in order: `--port` flag,
-then `env.gateway.port` in `workspace.json`, then the built-in default `5173`. Read the banner —
+then `env.gateway.port` in `workspace.json` (written by `descix config set-gateway-port <port>`),
+then the built-in default `5173`. Read the banner —
 every line names its source:
 
 ```
@@ -487,7 +642,20 @@ npx -y -p @descix/cli@4.2.0 descix kb corpus status -a <app_id> -k General
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
 and the plan (`Would-upsert chunks: <n>`, `Would-delete refs: <n>`). The real sync upserts what
 changed and purges what you deleted; a plain re-run is always safe. `descix kb list -a <app_id>`
-shows every KB with its live vector count (`Source` column `live`).
+shows every KB with its live vector count (`Source` column `live`); `--cached` shows a counter
+that only the CLI and PWA sync write, so it reads 0 for a KB filled any other way.
+
+- `--show-walk` prints the resolved ref and the first 50 files the manifest selects before
+  anything syncs; run it before a first sync or a new `--ref`.
+- After uploading, the sync checks that one synced passage is searchable before it reports
+  success: one credit-metered `query_knowledge_base` read, waiting up to about 25 seconds.
+  `--skip-retrieval-canary` skips it, and the sync then reports success on the upload alone.
+- `--rebuild` deletes everything in the KB and re-syncs the whole corpus, prompting first unless
+  `--yes` is given. A deleted or changed file never needs it, since an ordinary sync removes
+  those; use it only for content an ordinary sync cannot see.
+- `descix kb doctor -a <app_id> -k <kb_name>` checks the KB against this checkout's last sync by
+  file: live files the walk did not select (orphans) and walked files that are not live
+  (missing).
 
 **What a source skips: `syncignore`.** Each source may carry `"syncignore": [<glob>, …]`. Every
 entry the walk meets is tested with `minimatch` (`dot: true`, case-sensitive) twice: against
@@ -554,7 +722,17 @@ git rev-parse main:kb/General/<file>
 The reply's `📚 Sources:` line reads `<file> [ID: corpus:<sha>]`, and `<sha>` equals the
 `git rev-parse` output. Measured on the reference app: the answer cited
 `getting-started.md [ID: corpus:255bc8befe4c8b9ec83412931e4034705aa30b9d]`, equal to
-`git rev-parse main:kb/General/getting-started.md`. (Chat draws on your AI-credit balance; `descix credits buy --usd <10|25|100|200>` prints a Stripe Checkout URL to top it up, and patronage from $20 is in the Powch Buy menu.)
+`git rev-parse main:kb/General/getting-started.md`. An answer can read well over thin sources;
+to see the raw chunks instead, query the KB:
+
+```bash
+npx -y -p @descix/cli@4.2.0 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
+```
+
+`.message.results` holds the matching chunks; each row's `metadata.blob_sha` is the committed
+blob sha the `git rev-parse` above prints, and `metadata.chunk_idx` is the chunk's place in that
+file. The tool takes `kb_id`, where `ask_question_to_app` takes `knowledgebase_names`, and each
+query is one metered read. (Chat draws on your AI-credit balance; `descix credits buy --usd <10|25|100|200>` prints a Stripe Checkout URL to top it up, and patronage from $20 is in the Powch Buy menu.)
 
 ### 6.1 The app's default knowledge base
 
@@ -609,7 +787,8 @@ The same command writes `assets/app_description.md` and `assets/icon.png` to the
 
 ### 7.1 The site manifest is an allowlist
 
-`.descix/manifests/site.json` names exactly what `descix site upload` ships:
+`.descix/manifests/site.json` names exactly what `descix site upload` ships, and while it exists
+the upload ignores `-p <dir>`:
 
 ```json
 {
@@ -851,6 +1030,10 @@ npx -y -p @descix/cli@4.2.0 descix app set-listed on -c <community> -a <app_id>
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
 cached for five minutes, so the change appears within five minutes, not instantly. Your app
 shows in the store only if its community is listed too — a platform act; ask if it is not.
+
+`descix app --help` lists the other app verbs: `set-name` (the display name), `invite` (invite
+links), `media-upload` (asset files, 200 MB per app) and `records` (structured records on the
+app data plane, apart from the KB).
 
 For everything this page does not cover — backend commands, payments, model tuning, anything —
 ask the platform itself:

@@ -10,7 +10,7 @@ This document covers how AI agents interact with the DeSciX platform via MCP (Mo
 
 ## 1. Architecture Overview
 
-DeSciX operates as a **Federated MCP Service Mesh**. The DeSciX Cloud backend acts as a broker that aggregates tools from all registered microservices into a unified catalog.
+DeSciX operates as a **Federated MCP Service Mesh**. The DeSciX backend acts as a broker: it registers tools from all registered microservices alongside its own native commands, dispatches calls to whichever service owns the command, and advertises a small handshake floor of that set at `tools/list` (see §2.2).
 
 **Key Innovation:** AI agents discover and invoke capabilities across the entire mesh without knowing where individual services are hosted.
 
@@ -24,7 +24,7 @@ AI Agent (Cursor/MCP Client)
    execute_remote_command
        │
        ▼
-   DeSciX Cloud (Federated Broker)
+   DeSciX Backend (Federated Broker)
        │
        ├──► Service 1 (Powch)
        ├──► Service 2 (SmartModel)
@@ -42,19 +42,33 @@ MCP provides the communication protocol between AI agents and the DeSciX platfor
 **Key Tools:**
 - `tell_me_how` - Semantic tool discovery
 - `execute_remote_command` - Execute any backend command
-- `descix_doctor` - Local diagnostic: auth state, workspace state, app context, available tools
-- `ask_question_to_app` - Ask an app's agent a question (RAG)
-- `query_knowledge_base` - Search a specific knowledge base
-- `find_communities` / `list_apps_for_community` - Discovery
+- `descix_doctor` - CLI-local startup diagnostic (auth, workspace, tools, warnings)
+- `ask_question_to_app` - RAG chat with an app's knowledge base (synthesized answer, cited)
+- `query_knowledge_base` - Raw vector search, returns chunks
 
-### 2.2 Cursor/AI Agent Integration
+### 2.2 The Two-Hop: Reaching Commands That Are Not In Your Tool List
 
-When an AI agent (e.g., Cursor) is configured with the DeSciX MCP server:
+**Your MCP tool list is a small floor, not the platform's capability surface.** The platform
+registers many more commands than it advertises at the handshake, so that a session pays ~1k
+tokens of catalog instead of ~8.7k. Everything outside the advertised floor stays registered and
+callable — you reach it with two hops:
 
-1. Agent receives user question
-2. Agent uses `tell_me_how` to find relevant tools
-3. Agent calls `execute_remote_command` with discovered tool
-4. Result returned to user
+1. `tell_me_how({ question })` — names the command and its parameters
+2. `execute_remote_command({ command, params })` — invokes it
+
+**Rule for an agent: if a capability is not a tool in your list, do not conclude the platform
+lacks it, and do not guess a command name — ask `tell_me_how`, then `execute_remote_command`
+what it names.** This is the standing integration pattern for every caller, on every transport.
+
+The advertised floor is a **floor, not a ceiling**: `tools/list` serves it UNION the calling
+identity's granted command names, so a caller may see more, never less. The floor's membership
+and its contract are owned by `describeDiscoveryCoreFence()` /
+`DISCOVERY_CORE_TOOL_NAMES` in `@descix/platform-api`
+(`src/mcp-tools/nativeTools.js`) — read your live `tools/list` rather than a copy of it.
+
+The CLI's stdio MCP server additionally concatenates its CLI-local diagnostics (`descix_doctor`,
+`platform_health`) onto whatever the backend advertises; those are local CLI operations, never
+`/apifront` commands, so `execute_remote_command` does not reach them.
 
 ### 2.3 The `_descix` Context Object
 
@@ -86,21 +100,30 @@ The broker validates this context and propagates it to downstream services.
 
 ### 3.1 Primary Discovery Mechanism
 
-`tell_me_how` is the **primary entry point** for discovering platform capabilities. Always use it before attempting platform operations.
+**Prerequisite: the developer is signed in.** `tell_me_how` returns caller-specific context (and `kb corpus sync` writes to a KB namespace) — both correctly refuse a credential-free caller, loud: `Authentication required`, exit 1. There is no guest/unauthenticated form of discovery, and that refusal must not be treated as a bug to work around. The step before discovery is `descix login --env dev`: it starts a device-code flow — opens a browser and mints a fresh sign-in code for that one invocation — and completes once the browser confirms it.
 
-**Rule:** Ask `tell_me_how` first, then execute the recommended command.
+Once signed in, `tell_me_how` is the **primary entry point** for discovering platform capabilities. Always use it before attempting platform operations.
 
-### 3.2 Three Scopes
+**Rule:** Sign in, then ask `tell_me_how` first, then execute the recommended command.
+
+### 3.2 Scopes
+
+The validated `tell_me_how` scope enum has five values:
 
 | Scope | Description | Use Case |
 |-------|-------------|----------|
-| `entitlements` (default) | Only tools user has access to | Production usage |
+| `entitlements` (default) | Only tools the user has access to | Production usage |
 | `project` | Tools filtered by workspace.json | Working within a project |
 | `discovery` | All available tools | Exploring capabilities |
+| `bootstrap` | Deterministic first-call on-ramp: platform summary, caller context, credit balance, essential tool schemas (no vector search; `question` is optional for this scope only) | First contact / first call in a session |
+| `artifact` | Deterministic build/reproduce provenance for a published app (npm package + spec, artifact/notebook URLs, runnable `npx` commands), no vector search | "How do I build on / reproduce this app?" |
 
 ### 3.3 CLI Usage
 
 ```bash
+# Sign in first — device-code flow, opens a browser (skip if already authenticated)
+descix login --env dev
+
 # Default (entitlements scope)
 descix tell-me-how "How do I create a new app?"
 
@@ -115,35 +138,28 @@ descix tell-me-how --scope discovery "What AI training tools exist?"
 
 ```javascript
 tell_me_how({ 
-  question: "How do I publish my app's website?",
+  question: "How do I deploy my app?",
   scope: "entitlements"
 })
 
-// Returns the tools the caller is entitled to, e.g.:
+// Returns:
 {
   recommended_tools: [
     {
-      name: "get_site_deploy_token",
-      description: "Obtain an upload token for the app's site prefix",
-      parameters: { ... }
-    },
-    {
-      name: "confirm_site_deploy",
-      description: "Commit the uploaded site and update the app's public URL",
+      name: "deploy_site",
+      description: "Deploy static site to GCS",
       parameters: { ... }
     }
   ],
-  guidance: "..."
+  guidance: "Use deploy_site to upload your site/ folder..."
 }
-
-The CLI wraps that pair as `descix site upload`.
 ```
 
-### 3.5 Integration with SDK Setup
+### 3.5 Integration with SDK V2 Setup
 
-After `descix quickstart` (or `descix login` + `descix init` + `descix app init`) completes:
+After `descix quickstart` completes:
 
-1. `workspace.json` is created with community/app mappings
+1. `.descix/workspace.json` exists (created when none was found up the tree)
 2. Credentials are saved to `.descix/wallet.json`
 3. `tell_me_how --scope project` now filters by configured apps
 4. Agent can discover project-specific tools
@@ -154,21 +170,23 @@ After `descix quickstart` (or `descix login` + `descix init` + `descix app init`
 
 ### 4.1 Federated MCP Broker
 
-The DeSciX Cloud backend aggregates tools from all registered microservices:
+The DeSciX backend registers tools from all registered microservices and makes them callable and
+semantically discoverable — the handshake advertises only the floor (§2.2):
 
 ```
 Microservice A
   └── manifest.json (tools: [tool1, tool2])
         │
         ▼
-    Registers with Core
+    Registers with Core  ──► callable via execute_remote_command
+        │                    + vectorized for tell_me_how
+        ▼
+DeSciX Backend (Broker)
+  └── tools/list  ──► handshake floor + this caller's grants
         │
         ▼
-DeSciX Cloud (Broker)
-  └── Aggregated tools/list
-        │
-        ▼
-    AI Agent sees: [tool1, tool2, core_tools...]
+    AI Agent's tool list: the floor. tool1/tool2 are reached
+    with tell_me_how -> execute_remote_command.
 ```
 
 ### 4.2 SERVICE_README Vectorization
@@ -202,12 +220,11 @@ execute_remote_command({
 
 ### 4.3 Service Registration
 
-Services self-register with the broker:
+Services self-register with the broker in one step — registration also vectorizes the README you
+pass, so there is no separate developer-facing vectorize step:
 
 ```bash
-# Register the service manifest together with its SERVICE_README,
-# which is what makes the service's tools discoverable by tell_me_how
-descix microservice register -m ./manifest.json -r ./SERVICE_README.md
+descix microservice register -r SERVICE_README.md
 ```
 
 ### 4.4 The execute_remote_command Pattern
@@ -239,33 +256,26 @@ const result = await execute_remote_command({
 ### 5.1 Initial Setup Phase
 
 ```
-descix quickstart -c <community_id> -a <app name>
+descix quickstart
        │
        ▼
-   Device Login (browser, via Powch)
+   Device login (skipped when .descix/wallet.json holds a valid session)
        │
        ▼
-   Credentials Saved (.descix/wallet.json)
+   .descix/workspace.json created (skipped when one exists up the tree)
        │
        ▼
-   Workspace created (.descix/workspace.json)
+   CLAUDE.md, .github/copilot-instructions.md, .cursorrules, .clinerules written
        │
        ▼
-   App created + registered (record, default KB, scaffold)
+   .vscode/mcp.json written (skipped when the DeSciX extension handles MCP)
        │
        ▼
-   Agent instruction files written
-       │
-       ▼
-   MCP config written
+   .descix/sdk-assets/ copied (fails loud if the package's assets are missing)
        │
        ▼
    ✓ Ready for agent interaction
 ```
-
-The same steps are available individually as `descix login`, `descix init`,
-`descix app init` and `descix mcp-serve`. `descix doctor` reports on Node, auth,
-gcloud and ADC if any of them fail.
 
 ### 5.2 Ongoing Usage - Agent as Assistant
 
@@ -293,48 +303,58 @@ User asks question
 When `--scope project` is used:
 
 1. CLI/MCP loads `workspace.json`
-2. Extracts configured communities and apps
-3. Filters `tell_me_how` results to only tools applicable to those apps
+2. Extracts the app this repo holds (`env.app`)
+3. Filters `tell_me_how` results to only tools applicable to that app
 4. Returns focused recommendations
 
 ```javascript
-// workspace.json (v2.1)
+// workspace.json (v3 single-app)
 {
-  "version": "2.1",
+  "version": "3.0",
   "env": {
-    "products": [
-      { "appId": "<your app id>", "localPath": "<path to the app>", "kbId": "General" }
-    ]
+    "apiUrl": "https://descix.net",
+    "app": { "appId": "daita-agent", "communityId": "daita", "kbId": "General" }
   }
 }
 
-// tell_me_how with project scope only searches within the apps listed there
+// tell_me_how with project scope only searches within daita-agent
 ```
 
 ---
 
-## 6. Key Integration Points with the SDK
+## 6. Key Integration Points with SDK V2
 
 ### 6.1 KB Operations via tell_me_how
 
-The KB commands are discoverable:
+`tell_me_how` can be asked about KB sync in plain language, but the actionable answer for a
+developer is always the CLI verb, not the raw backend command names (`kb_sync_chunks` etc. are
+internal to the backend, not something the CLI calls directly by name):
 
 ```bash
 descix tell-me-how "How do I sync my knowledge base?"
-# Returns: kb_sync_chunks, kb_get_chunk_ids, kb_delete_chunks
+# The developer-facing command either way: descix kb corpus sync
 ```
 
-### 6.2 workspace.json from setup
+### 6.2 workspace.json from Hydration
 
-`descix init` creates `.descix/workspace.json`; `descix app init` registers each app in it
-under `env.products[]`. That list is what `tell_me_how --scope project` filters on.
+`descix config init --env …` creates `workspace.json`; `descix app init` (from the repo root) writes the app's `env.app`; no verb writes `driveConfig.base_folder_id` — set it in `.descix/workspace.json` when you use `descix drive pull/push`:
+
+```javascript
+{
+  "env": { "apiUrl": "https://descix.net", "app": { /* THE app this repo holds */ } },
+  "driveConfig": {
+    "base_folder_id": "..."  // Only used by `descix drive pull/push` — unrelated to tell_me_how scope
+  }
+}
+```
 
 ### 6.3 Service Registration for Custom Microservices
 
 Custom services integrate with the same pattern:
 
 1. Create `SERVICE_README_{name}.md`
-2. Register it with `descix microservice register -r ./SERVICE_README_{name}.md`
+2. Register with `descix microservice register -r SERVICE_README_{name}.md` — this both publishes
+   the manifest AND vectorizes the README in one step
 3. Tools become discoverable via `tell_me_how`
 
 ---
@@ -343,17 +363,19 @@ Custom services integrate with the same pattern:
 
 ### 7.1 For AI Agents
 
-1. **Always use tell_me_how first** - Don't guess at command names
-2. **Use project scope when in a workspace** - More focused results
-3. **Chain operations** - tell_me_how -> execute_remote_command
-4. **Handle errors gracefully** - Show user-friendly messages
+1. **Be signed in before discovery** - `descix login --env dev` (device-code flow) is the step before `tell_me_how`; it refuses loud, not silently, for a credential-free caller
+2. **Always use tell_me_how first (once signed in)** - Don't guess at command names
+3. **Use project scope when in a workspace** - More focused results
+4. **Chain operations** - tell_me_how -> execute_remote_command
+5. **Handle errors gracefully** - Show user-friendly messages
 
 ### 7.2 For Service Developers
 
 1. **Document all commands in SERVICE_README** - Required for discovery
 2. **Use clear descriptions** - "Use when:" is crucial for semantic matching
 3. **Include examples** - Helps AI agents understand usage
-4. **Register after changes** - Re-register with `-r` when the SERVICE_README changes
+4. **Re-register after README changes** - `descix microservice register -r <file>` re-vectorizes
+   automatically; there is no separate vectorize step
 
 ### 7.3 Common Patterns
 
@@ -370,7 +392,7 @@ if (tools.recommended_tools.length > 0) {
 
 **Pattern: Project-Scoped Operations**
 ```javascript
-// Only works once a workspace exists (descix init)
+// Only works inside a workspace (descix quickstart or descix config init)
 const tools = await tell_me_how({ 
   question: "How do I update this app?",
   scope: "project"  // Uses workspace.json
@@ -383,43 +405,33 @@ const tools = await tell_me_how({
 
 ### 8.1 "No results from tell_me_how"
 
-**Cause:** the service's SERVICE_README may not have been registered.
+**Cause:** SERVICE_READMEs may not be vectorized.
 
-**Solution:** re-register the service with its README:
+**Solution:** Admin should run:
 ```bash
-descix microservice register -r ./SERVICE_README.md
+descix microservice vectorize -r SERVICE_README.md
 ```
 
 ### 8.2 "workspace.json not found" for project scope
 
-**Cause:** setup not completed, or you are not inside the workspace.
+**Cause:** Setup not completed or not in workspace root.
 
 **Solution:**
 ```bash
-# Initialize the workspace first
-descix init
+# Run setup first
+descix quickstart
 
-# Or change into the workspace root and retry
-cd <workspace root>
+# Or ensure you're in the workspace root
+cd /path/to/workspace
 ```
 
 ### 8.3 "Command not found"
 
-**Cause:** the service is not registered, or the command does not exist.
+**Cause:** Service not registered, or the README wasn't vectorized.
 
 **Solution:**
-1. Check the service is healthy: `descix microservice health <name>`
-2. Use `descix tell-me-how "<what you are trying to do>"` to find the tool that does it
-3. `descix --help` and `<group> --help` are the authority for what the CLI has; a command that does not exist exits non-zero and lists the ones that do
-
----
-
-## 9. File References
-
-Paths are inside the published `@descix/cli` package. `tell_me_how` and `execute_remote_command` are served by the DeSciX Cloud backend through `/apifront`; that backend is not a published package.
-
-| Component | Path |
-|-----------|------|
-| MCP server | `bin/mcp-server.js` |
-| SERVICE_README Template | `templates/scaffolds/microservice/templates/SERVICE_README_TEMPLATE.md` |
-| Workspace Config | `lib/workspace-config.js` |
+1. Re-run `descix microservice register -r SERVICE_README_<name>.md` — it re-publishes the
+   manifest and re-vectorizes the README (`descix microservice list` exists to enumerate
+   registered services, but it is an admin-only command, not something a developer runs)
+2. Check `descix microservice health <name>` to confirm the service itself is reachable
+3. Use `descix tell-me-how --scope discovery "..."` to find alternatives
