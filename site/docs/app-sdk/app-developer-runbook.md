@@ -187,6 +187,28 @@ EOF
 (`.gitignore:<line>:.descix/wallet.json` followed by the path) — no output means the wallet is
 not ignored; `git check-ignore .descix/workspace.json` prints nothing and exits 1.
 
+### The app's Claude plugin
+
+`app init` writes `.claude-plugin/plugin.json` only if it is absent: `name` is the app id, and
+`description` reads `<app_id>, an app of the <community> community on DeSciX.` You edit it from
+there, and add skills under `skills/<skill_name>/SKILL.md`. claude.ai (Cowork and chat) syncs an
+installed plugin under two limits that `claude plugin validate` does not check, and it reports a
+breach only as a warning while dropping or trimming the item:
+
+- the plugin `description` is at most 500 characters, in `plugin.json` and in the marketplace
+  entry that lists the plugin;
+- a skill's `description` in its `SKILL.md` front matter carries no `<` or `>`; claude.ai reads
+  them as an XML tag and stores the text with the brackets removed. Write a placeholder as plain
+  words (`owner/repo`), never in angle brackets.
+
+**Verify** from the repo root: the first command prints a number no greater than 500, and the
+second prints nothing:
+
+```bash
+jq '.description | length' .claude-plugin/plugin.json
+grep -n '^description:.*[<>]' skills/*/SKILL.md
+```
+
 ## 5. Run it locally: `descix serve`
 
 First declare how your site is served. One write sets one mode, and each write clears the other
