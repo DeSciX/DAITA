@@ -41,7 +41,7 @@ CloudKey = HKDF-SHA256(prfOutput, credentialId, "DeSciX-CloudKey-v1")
 - **credentialId**: WebAuthn credential ID from the attestation
 - **Info string**: `"DeSciX-CloudKey-v1"` (domain separation)
 
-**Implementation**: [vaultOps.js](../../packages/client-core/src/vaultOps.js) — `deriveCloudKeyFromPRF`.
+**Implementation**: client-core `vaultOps` — `deriveCloudKeyFromPRF`.
 
 ### Master Wallet = CloudKey as Private Key
 
@@ -59,7 +59,7 @@ No additional derivation. The wallet address is `wallet.address`; signing uses `
 
 ### SyncManager.createCredential
 
-**Location**: [PowchData.js](../../packages/client-core/src/PowchData.js) — SyncManager class.
+**Location**: client-core `PowchData` — SyncManager class.
 
 1. WebAuthn create ceremony (attestation + PRF)
 2. Derive CloudKey from PRF + credentialId
@@ -114,7 +114,7 @@ When email is verified, the flow persists the vault:
 2. **MASTER_ID card**: Identity card with email, walletAddress, TOS timestamp.
 3. **Encrypt and put**: `encryptVaultForDeSciXPut()` encrypts with CloudKey; `powch_vault_put` uploads.
 
-**Implementation**: [PowchData.js](../../packages/client-core/src/PowchData.js) — `addMasterIdCardAndPutVaultForDeSciX`.
+**Implementation**: client-core `PowchData` — `addMasterIdCardAndPutVaultForDeSciX`.
 
 ### Card Structure
 
@@ -179,9 +179,9 @@ flowchart TB
 
 | Component | Location | Role |
 |-----------|----------|------|
-| SyncManager.createCredential | [PowchData.js](../../packages/client-core/src/PowchData.js) | Derives CloudKey and wallet; sends to finishRegistration |
-| deriveCloudKeyFromPRF | [vaultOps.js](../../packages/client-core/src/vaultOps.js) | HKDF derivation |
-| createPasskeyBlob | [PowchData.js](../../packages/client-core/src/PowchData.js) | DeSciX registration flow entry |
-| deriveMasterWalletForRegistration | [PowchData.js](../../packages/client-core/src/PowchData.js) | Creates CRYPTO_WALLET from CloudKey (signing variant) |
-| addMasterIdCardAndPutVaultForDeSciX | [PowchData.js](../../packages/client-core/src/PowchData.js) | Adds MASTER_ID + master wallet CRYPTO_WALLET; encrypts and puts vault |
-| AuthFlowController | [AuthFlowController.js](../../packages/react/src/flows/AuthFlowController.js) | CREATE_PASSKEY_BLOB → COLLECT_EMAIL → addMasterIdCardAndPutVaultForDeSciX |
+| SyncManager.createCredential | client-core `PowchData` | Derives CloudKey and wallet; sends to finishRegistration |
+| deriveCloudKeyFromPRF | client-core `vaultOps` | HKDF derivation |
+| createPasskeyBlob | client-core `PowchData` | DeSciX registration flow entry |
+| deriveMasterWalletForRegistration | client-core `PowchData` | Creates CRYPTO_WALLET from CloudKey (signing variant) |
+| addMasterIdCardAndPutVaultForDeSciX | client-core `PowchData` | Adds MASTER_ID + master wallet CRYPTO_WALLET; encrypts and puts vault |
+| AuthFlowController | React-layer flow | CREATE_PASSKEY_BLOB → COLLECT_EMAIL → addMasterIdCardAndPutVaultForDeSciX |

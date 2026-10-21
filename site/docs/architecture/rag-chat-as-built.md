@@ -150,16 +150,12 @@ The system prompt acts as the per-app "CLAUDE.md equivalent" — it shapes all R
 
 ## Key Files
 
-| File | Role |
-|------|------|
-| `cloud/microservice/services/apiFront.js` | API router, command dispatch |
-| `cloud/microservice/services/commandHandlers/ragCommands.js` | `ask_question_to_app` handler |
-| `cloud/microservice/services/communityManagement.js` | `prepare_chat_context()`, entity loading |
-| `cloud/microservice/services/geminiInteractions.js` | Gemini client, function calling loop |
-| `cloud/microservice/services/ipStorageUtils.js` | `KnowledgeBase`, `App`, `Community` classes |
-| `cloud/microservice/services/pineconeService.js` | Pinecone search, namespace/filter logic |
-| `cloud/microservice/defaults-config.json` | `DEFAULT_AI_MODEL`, keys, index config |
-| `core/descix-cli/bin/mcp-server.js` | MCP tool definitions + handler relay |
+The command dispatch, the `ask_question_to_app` handler, chat-context preparation, the Gemini function-calling loop and the Pinecone search all run in the DeSciX Cloud service, which is not a published package. The pieces that ship in public packages:
+
+| Package | Path | Role |
+|---------|------|------|
+| `@descix/platform-api` | `src/mcp-tools/nativeTools.js` (`@descix/platform-api/mcp-tools`) | MCP tool definitions (`NATIVE_MCP_TOOLS`), shared by the CLI's stdio server and the Cloud's HTTP MCP path |
+| `@descix/cli` | `bin/mcp-server.js` | The CLI's stdio MCP server: relays tool calls to `/apifront` |
 
 ---
 

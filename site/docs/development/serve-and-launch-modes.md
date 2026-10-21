@@ -3,8 +3,7 @@
 How to put a DeSciX app in front of a browser locally, and what each way actually does.
 
 This page is the decision table. It does **not** restate the gateway's routing table or port
-resolution — those have one owner in
-[platform-runtime-mental-model.md §5](../architecture/platform-runtime-mental-model.md), and a
+resolution — those have one owner, `agent-assets/reference/local-dev.md` (§2 and §3) in the published `@descix/cli` package, and a
 second copy here would be the mirror that drifts.
 
 ## What `descix serve` is

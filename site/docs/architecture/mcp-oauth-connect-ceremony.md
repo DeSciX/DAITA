@@ -3,10 +3,7 @@
 **Living reference — describes what the code does now.**
 
 **Scope:** (1) the OAuth connect ceremony that binds an MCP client to a DeSciX account, and
-(2) the passkey→wallet determinism & recovery model that makes the identity durable. Companion:
-[`mcp-surface-admin-user-separation.md`](mcp-surface-admin-user-separation.md) (what a bearer
-token may DO once minted). Open follow-on: the device-flow identity-duality window
-[`../design/proposed/ws-identity-duality-w4-design.md`](../design/proposed/ws-identity-duality-w4-design.md).
+(2) the passkey→wallet determinism & recovery model that makes the identity durable.
 
 ---
 
