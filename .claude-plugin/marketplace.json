@@ -5,14 +5,14 @@
     "url": "https://github.com/DeSciX"
   },
   "metadata": {
-    "description": "DeSciX — the DEcentralized SCIence eXchange — is a platform for supporting and contributing to open-source innovation. DeSciX gives open source an economic model, using the blockchain to track and reward intellectual property contributions. Daita = Data + AI: a blockchain-based tracking and value mechanism so that creators and contributors benefit from the economics of intellectual property rights. Install, run /descix-setup, then ask any community's knowledge base and get answers you can verify against the sources.",
+    "description": "DeSciX (the DEcentralized SCIence eXchange) rewards contributions to open-source innovation. DeSciX gives open source an economic model, using the blockchain to track and reward intellectual property contributions. Daita = Data + AI: a blockchain-based tracking and value mechanism so that creators and contributors benefit from the economics of intellectual property rights. Install, run /descix-setup, then ask any community's knowledge base and get answers you can verify against the sources.",
     "version": "0.1.0"
   },
   "plugins": [
     {
       "name": "daita",
       "source": "./plugins/daita",
-      "description": "DeSciX — the DEcentralized SCIence eXchange — is a platform for supporting and contributing to open-source innovation. DeSciX gives open source an economic model, using the blockchain to track and reward intellectual property contributions. Daita = Data + AI: a blockchain-based tracking and value mechanism so that creators and contributors benefit from the economics of intellectual property rights. Install, run /descix-setup, then ask any community's knowledge base and get answers you can verify against the sources.",
+      "description": "DeSciX (the DEcentralized SCIence eXchange) rewards contributions to open-source innovation. DeSciX gives open source an economic model, using the blockchain to track and reward intellectual property contributions. Daita = Data + AI: a blockchain-based tracking and value mechanism so that creators and contributors benefit from the economics of intellectual property rights. Install, run /descix-setup, then ask any community's knowledge base and get answers you can verify against the sources.",
       "category": "science",
       "keywords": [
         "descix",
