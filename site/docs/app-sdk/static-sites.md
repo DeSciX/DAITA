@@ -102,9 +102,9 @@ The gateway's `staticSitePlugin` handles requests to `/p/{appId}/`:
 
 1. **Trailing slash redirect**: `/p/egpt` redirects to `/p/egpt/` so relative asset paths resolve correctly
 2. **File serving**: Requests map to files on disk with proper MIME types (HTML, JS, CSS, images, fonts, WASM, etc.)
-3. **Directory index**: Directory requests serve `index.html`
-4. **Clean URLs**: `/p/egpt/about` tries `about.html` before falling back
-5. **SPA fallback**: Unmatched paths serve root `index.html` for client-side routing
+3. **Directory index**: A directory request serves that directory's `index.html`
+4. **Clean URLs**: A missing extensionless path tries the same path plus `.html` (`/p/egpt/about` serves `about.html`)
+5. **SPA fallback**: A missing extensionless path with no `.html` file serves the root `index.html`; a missing path with an extension returns 404
 6. **Path traversal protection**: Requests cannot escape the static root directory
 
 ## Deploying to Production
@@ -136,6 +136,8 @@ The upload command:
 4. Prints the removed files; a failed upload stops before the confirm, so nothing is removed
 
 In production, `{appId}.descix.net/` serves the App Shell, which frames the app's site at `/prod/{appId}/site/index.html` on the same host. The Cloudflare Worker `descix-edge-router` serves the site files from Google Cloud Storage (`descix-assets-public/prod/{appId}/site/`). `/p/{appId}/` exists only on the local gateway.
+
+Production has no clean-URL and no directory-index rule. The Worker looks each path up as a file in the bucket. When the file is missing and the path has no extension, a browser request (`Accept: text/html`), or any request for a path ending in `/`, gets the site's root `index.html`. So `about` and `about/` both serve the root `index.html`, never `about.html` or `about/index.html`; link to `about.html` with its extension. A missing path with an extension returns 404.
 
 ## End-to-End: From workspace.json to the Framed Site
 

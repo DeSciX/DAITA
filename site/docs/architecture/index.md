@@ -4,9 +4,9 @@ This section documents the DeSciX platform architecture as built.
 
 ## Scalability
 
-**Broker-first microservice mesh**: Client SDK → `POST /apifront` → Core validates entitlements → `proxyToExternalService()` to app Cloud Run URLs discovered via Firestore `ServiceManifests`. This is the **platform-hosted dispatch path only** (the door injects the signed caller identity `params._descix`); it is NOT how an app's own user traffic is metered — the edge routes `{app}.descix.net/api` straight to Cloud Run `{app}-{env}` by name, and the app owner meters those users inside the microservice. The LB serves static sites and forwards command paths to **core platform app NEGs** (daita broker + powch at standup only). Non-core apps have no NEG on routine deploy.
+**Broker-first microservice mesh**: Client SDK → `POST /apifront` → Core validates entitlements → `proxyToExternalService()` to app Cloud Run URLs discovered via Firestore `ServiceManifests`. This is the **platform-hosted dispatch path only** (the door injects the signed caller identity `params._descix`); it is NOT how an app's own user traffic is metered — the edge routes `{app}.descix.net/api` straight to Cloud Run `{app}-{env}` by name, and the app owner meters those users inside the microservice.
 
-**Edge-cached PWA**: Static assets are served from GCS buckets. The load balancer applies host rules for `[app].{env}.descix.net` and routes traffic to the appropriate backend. PWAs (main app, Powch) deploy to GCS and are served globally.
+**Edge-routed PWA**: The Cloudflare Worker `descix-edge-router` routes every request to a prod or dev host (`descix.net`, `{app}.descix.net`, `dev.descix.net`, `{app}.dev.descix.net`) by the app and env it reads from the host name. It fetches static files from Google Cloud Storage (`storage.googleapis.com`, bucket `descix-assets-public`, keys under `{env}/{appId}/site/`; an app host's root serves the shell's site, `{env}/daita/site/`, which frames the app's), sends `/apifront`, `/mcp` and `/oauth` to the Cloud Run broker `apifront-http-{env}`, and sends an app host's `/api/*` to Cloud Run `{app}-{env}`. PWAs (the platform shell, Powch) deploy to that bucket like any app site. Demo hosts (`*.demo.descix.net`) are not on the Worker: their DNS points at a GCP load balancer.
 
 ## Documents
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document defines the architecture for **Local Platform Development** and **Production Routing** in the DeSciX V2 platform. It unifies the development and production models by treating the "Platform" (DeSciX Store + Cloud Core) as a standard App (the "Root App") and leveraging `descix-serve` as a local mirror of the production load balancer's discovery logic.
+This document defines the architecture for **Local Platform Development** and **Production Routing** in the DeSciX V2 platform. It unifies the development and production models by treating the "Platform" (DeSciX Store + Cloud Core) as a standard App (the "Root App") and leveraging `descix-serve` as the local gateway that puts the shell, the apps and `/apifront` on one origin, as the Cloudflare Worker `descix-edge-router` does for a production host.
 
 **Key Principle:** All Apps (DeSciX Store, Powch, App X) are peers built on the same SDK. The Shell frames every app from its own origin; Powch, the identity silo, is the one app on a separate origin.
 
@@ -36,12 +36,16 @@ The `.descix/workspace.json` file drives the local routing configuration. It is 
 
 ### A. Routing Logic (Local vs. Prod)
 
-| Request Path | Prod Target (Load Balancer) | Local Target (`descix-serve`) |
+| Request Path | Prod Target (Cloudflare Worker `descix-edge-router`) | Local Target (`descix-serve`) |
 | :--- | :--- | :--- |
-| **`/` (Root)** | `daita` App (GCS `prod/daita/site`) | The Shell: `env.siteUrl`, else the `env.gateway.shell` repo's local site, else the API origin |
-| **`/apifront`** | `daita` Service (Cloud Run) | The CLI's resolved API origin (the `--api-url` flag, else the workspace's `env.apiUrl`) |
-| **`/s/{appId}`** | `{appId}` Service (Cloud Run) | `{appId}` Service (Localhost :{microservice.port}) |
-| **`/p/{appId}`** | `{appId}` App (GCS `prod/{appId}/site`) | `{appId}` App: its dev server (`site.port`, NO path rewrite) or its static directory (`site.static`) |
+| **`/` (Root)** | The shell's site: GCS `descix-assets-public/prod/daita/site/index.html`, on `descix.net` and on every `{appId}.descix.net` except `powch.descix.net`, which serves Powch's own site | The Shell: `env.siteUrl`, else the `env.gateway.shell` repo's local site, else the API origin |
+| **`/apifront`, `/mcp`, `/oauth`** | The shared broker, Cloud Run `apifront-http-prod`, on every host | The CLI's resolved API origin (the `--api-url` flag, else the workspace's `env.apiUrl`) |
+| **`/api/*`** | On `{appId}.descix.net`: the app's Cloud Run service `{appId}-prod` | The CLI's resolved API origin |
+| **`/prod/{appId}/site/*`** | The app's site files: GCS `descix-assets-public/prod/{appId}/site/*` | The Shell target, as for every path no other row matches |
+| **`/s/{appId}`** | No route | `{appId}` Service (Localhost :{microservice.port}) |
+| **`/p/{appId}`** | No route | `{appId}` App: its dev server (`site.port`, NO path rewrite) or its static directory (`site.static`) |
+
+In production, a path with no route is looked up as a file of the site served at the host's root; a browser request for a missing extensionless path gets that site's `index.html`.
 
 ### B. The Discovery Map (`__WORKSPACE_PRODUCTS__`)
 

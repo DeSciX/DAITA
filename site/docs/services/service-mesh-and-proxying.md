@@ -1,6 +1,6 @@
 # Service Mesh and Proxying
 
-This document describes the as-built service mesh: command routing via Core, HTTP proxying in local dev, and production routing via the GCP load balancer.
+This document describes the as-built service mesh: command routing via Core, HTTP proxying in local dev, and production routing by the Cloudflare Worker `descix-edge-router`.
 
 ## Federated MCP Service Mesh
 
@@ -70,16 +70,16 @@ Ports come from each app repo's `.descix/workspace.json` (`env.app.microservice.
 
 ## Production: Broker-First Routing
 
-**In production, sites call `/apifront` on their host (or env apex).** The edge routes `/apifront` and `/mcp` to the shared broker (`apiFront-http-{env}`), and `/api/*` on an app host straight to that app's Cloud Run service `{app}-{env}` by name. Core validates entitlements and proxies to microservices via Firestore manifest dispatch for the canonical SDK path — this is the platform-hosted dispatch path, not a metering point for an app's own inbound `/api` traffic (the app owner meters those users in-service).
+**In production, sites call `/apifront` on their host (or env apex).** The Cloudflare Worker `descix-edge-router` routes `/apifront`, `/mcp` and `/oauth` to the shared broker, Cloud Run `apifront-http-{env}`, and `/api/*` on an app host straight to that app's Cloud Run service `{app}-{env}` by name. Core validates entitlements and proxies to microservices via Firestore manifest dispatch for the canonical SDK path — this is the platform-hosted dispatch path, not a metering point for an app's own inbound `/api` traffic (the app owner meters those users in-service).
 
-Platform LB is provisioned at standup by `deploy-backend-env.sh` → `provision-platform-lb.js`.
+The Worker routes prod and dev hosts. Demo hosts (`*.demo.descix.net`) resolve to a GCP load balancer instead; `deploy-backend-env.sh` → `provision-platform-lb.js` writes its URL map at env standup.
 
 ## Summary
 
-| Context | Command routing | HTTP / LB |
+| Context | Command routing | HTTP routing |
 |---------|-----------------|-------------|
 | Local | Client → /apifront → Core → internal or proxy to microservice | descix-serve proxies /apifront, /api, /mcp to Core |
-| Production | Client → /apifront → Core → internal or proxy | Static url-map: site → GCS; apex /apifront → daita broker NEG; powch /api → powch NEG |
+| Production | Client → /apifront → Core → internal or proxy | Worker `descix-edge-router`: site files → GCS `descix-assets-public`; `/apifront`, `/mcp`, `/oauth` → Cloud Run `apifront-http-{env}`; `/api/*` → Cloud Run `{app}-{env}` |
 
 ## Related
 
