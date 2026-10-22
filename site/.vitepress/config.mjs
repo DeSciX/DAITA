@@ -105,6 +105,10 @@ export default defineConfig({
                             "link": "/development/index"
                       },
                       {
+                            "text": "Powch sample verification runbook: desktop and mobile, by mode",
+                            "link": "/development/powch-sample-verification-runbook"
+                      },
+                      {
                             "text": "Serve & Launch Modes",
                             "link": "/development/serve-and-launch-modes"
                       }
@@ -145,6 +149,10 @@ export default defineConfig({
                       {
                             "text": "Powch: DeFi Banking + SSO",
                             "link": "/architecture/powch-defi-sso"
+                      },
+                      {
+                            "text": "Powch, the app shell and app routing: the frame model, as built",
+                            "link": "/architecture/powch-frame-model"
                       },
                       {
                             "text": "RAG / Chat Pipeline — As-Built Design",
