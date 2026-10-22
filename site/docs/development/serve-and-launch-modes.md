@@ -50,8 +50,9 @@ it; the gateway serves `/__descix/app-binding.json` only at the root.
 it is the platform origin (`dev.descix.net`, `descix.net`). A catalogue or listing defect is
 debugged there — never through `descix serve`, which has no view that could show it.
 
-- **Default:** cwd detection — the product whose `localPath` contains your current directory,
-  longest match wins.
+- **Default:** cwd detection — the app whose repo root contains your current directory, longest
+  match wins: the workspace's own `env.app` (its root is the workspace root) or, in a gateway
+  workspace, a repo listed under `env.gateway`.
 - **Override:** `-a <appId>`.
 - **Nothing is persisted.** The binding is per-run; `workspace.json` is not written.
 

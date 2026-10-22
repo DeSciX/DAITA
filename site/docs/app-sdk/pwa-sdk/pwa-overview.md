@@ -28,7 +28,7 @@ import { usePowchBridge } from '@descix/app-sdk';
 function SignInButton() {
   const bridge = usePowchBridge();
   const handleLogin = async () => {
-    const result = await bridge.login({ purpose: 'Sign in to DeSciX' });
+    const result = await bridge.login({ purpose: 'Sign in to DeSciX', registerDeSciX: true });
     window.DeSciX?.loginWithSessionToken?.(result);
     setAppEvent(AppContextEvent.LOGIN_SUCCESS);
   };
