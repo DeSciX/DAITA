@@ -93,8 +93,12 @@ npx -y -p @descix/cli@4.2.0 descix login
 see **Complete CLI Login**, then one button, **Sign In with Powch**; clicking it opens the Powch
 panel on the right edge of the window, the passkey ceremony runs in that panel, and the page
 ends with **CLI Login Complete — You can return to your terminal.** The credentials are saved to
-`.descix/wallet.json` in your workspace root. A first-time account is created by the same
-ceremony; there is no separate sign-up.
+`.descix/wallet.json` in your workspace root. In Chrome and Edge on desktop and Android, a
+first-time account is created by the same ceremony; there is no separate sign-up. Safari on iOS
+refuses to create a passkey inside the Powch panel, because the panel is a frame from another
+origin (WebKit: `The origin of the document is not the same as its ancestors`); signing in there
+with an existing passkey works. On iOS, create the account at `https://powch.descix.net/` opened
+in its own Safari tab, then sign in.
 
 **The passkey trap:** `descix login` signs in with whichever passkey the browser offers first.
 If the account is wrong, run `descix logout`, then `descix login` again and pick the right
@@ -992,6 +996,15 @@ response raw.
 The two hashes are equal. Then open
 `https://<app_id>.descix.net/` in a browser — that URL is the app; the `/prod/...` path is only
 its storage — and exercise its main function.
+
+**Where your site runs.** The App Shell frames your site same-origin in two places. At
+`https://<app_id>.descix.net/` the shell runs at your app's own host and frames
+`https://<app_id>.descix.net/prod/<app_id>/site/index.html`. Opened from the store, the shell at
+`https://descix.net/` frames `https://descix.net/prod/<app_id>/site/index.html`. It is the same
+shell bundle in both places: it renders the top bar, the chat (both dropped in `NoChrome`) and
+the Powch panel around your frame, and Powch is always the shell's own frame at
+`https://powch.descix.net/`, never a frame inside your site. Your site renders only itself and
+reaches the shell through `DeSciXAppSDK.js` or `@descix/app-sdk` (§5.2).
 
 ### 8.1 How your files are cached — what the browser actually gets
 

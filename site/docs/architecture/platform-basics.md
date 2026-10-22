@@ -50,8 +50,10 @@ An app is an agentic service with three slots:
 Every app has one or more **knowledge bases** (KBs). RAG queries against them
 (`ask_question_to_app`, `query_knowledge_base`) are metered against a shared USD
 AI-credit balance (`get_credit_balance` shows it). Apps are served inside the platform's
-App Shell — on the web at `/p/{app_id}` under the platform origin — and self-custody
-wallet auth (Powch) comes with the shell automatically.
+App Shell — on the web at the app's own host `https://{app_id}.descix.net/` and from the
+store at `https://descix.net/`; either shell frames the app's site from
+`/prod/{app_id}/site/` on its own origin — and self-custody wallet auth (Powch) comes with
+the shell automatically. `/p/{app_id}` exists only on the local `descix serve` gateway.
 
 ## How developers work
 

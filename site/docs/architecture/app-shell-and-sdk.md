@@ -46,7 +46,7 @@ When running standalone, apps define these in `vite.config.js`.
 | DeSciX PWA, standalone | `PowchBridgeProvider` + iframe | Powch iframe via `PowchSideBarWidget` |
 | Powch PWA | `PowchAppProvider`, in the Powch app's own React layer (not a published package) | Powch PWA owns its own UI |
 
-**DeSciX PWA does not use Powch's React layer.** It uses `usePowchBridge` and `PowchSideBarWidget` from `@descix/app-sdk`, and its own `SignInButton`. Session hydration via `makeCommandRequestJSON` and `POWCH_LOGIN_COMPLETE` event.
+**DeSciX PWA does not use Powch's React layer.** It uses `usePowchBridge` and `PowchSideBarWidget` from `@descix/app-sdk`, and its own `SignInButton`. Sign-in sends `bridge.login(descixSessionRequest())`, a request for the session and no personal fields. The session reaches the shell through `window.DeSciX.loginWithSessionToken(result)` followed by `LOGIN_SUCCESS`: `PowchBridgeClient` makes that call itself for every Powch message that carries a session.
 
 ## State Flow
 
@@ -83,12 +83,13 @@ The primary development entry point is `descix serve`.
 
 **Architecture:**
 *   **Gateway:** `descix serve` acts as the reverse proxy and discovery server. Its port resolves `--port` > `env.gateway.port` > built-in `5173` and is printed with its source at startup.
-*   **Shell:** the platform site at `env.platform.site.port` runs the Store PWA.
-*   **Powch:** served from its own origin, `env.powchUrl` — cross-origin from the shell by design.
+*   **Shell:** the gateway root `/` proxies to the deployed shell at the API origin whenever the API origin is remote (`https://descix.net` on PROD), unless `--site-url` or `env.siteUrl` names another origin. A local shell is served only when the API origin is itself local and `env.gateway.shell` names the shell repo, whose own workspace carries `site.port`.
+*   **App:** the shell reads `/__descix/app-binding.json` from the gateway, boots the bound app standalone and frames it same-origin at `/p/{appId}`.
+*   **Powch:** a cross-origin frame of the shell. A deployed shell frames the Powch URL compiled into its bundle (`https://powch.descix.net/` in the PROD bundle, `https://powch.dev.descix.net/` in the DEV bundle); `env.powchUrl` takes effect only in a shell the gateway builds locally.
 
 **Routing:**
-*   the gateway origin -> Proxies to the platform site's `env.platform.site.port` (Shell).
-*   Shell loads the Powch iframe from `env.powchUrl`.
+*   `/` -> the shell origin above.
+*   `/p/{appId}` -> the app's `site.static` directory or its `site.port` dev server.
 *   API requests (`/apifront`, `/api`, `/mcp`) -> proxied to the resolved API origin.
 
 No port on this page is a fixed value. Every one of them comes from `.descix/workspace.json` and is printed, with its source, by the `descix serve` startup banner.
@@ -101,7 +102,7 @@ See [Serve & Launch Modes](../development/serve-and-launch-modes.md).
 - Phase 2: Powch PWA, standalone-vanilla, standalone-react migrated (complete)
 - Phase 3: DeSciX PWA migrated to @descix/app-sdk (complete)
 
-DeSciX PWA uses AppShell with `StandAloneAppWidget`; host apps use `PowchBridgeProvider` + iframe for auth.
+DeSciX PWA mounts `<AppShell appId="app">` and shows a bound app in its `STANDALONE_APP` view through `AppSurfaceWidget`, the same container the store uses for an app opened from the store. Every shell whose `appId` is not `powch` gets `PowchBridgeProvider`; the shell mounts `PowchSideBarWidget`, which holds the Powch iframe.
 
 ## Related
 

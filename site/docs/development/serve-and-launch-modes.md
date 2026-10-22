@@ -30,19 +30,23 @@ Every one of these prints what it resolved, and **where each value came from**, 
   API:       <api origin>     [<source>]
   Shell:     <shell origin>   [<source>]
   Port:      <port>           [<source>]
-  App:       <appId>          [<source>]  → standalone at <url>
+  App:       <appId>          [<source>]   mode: standalone
+  Open:      https://localhost:<port>/   → App Shell; reads /__descix/app-binding.json and boots <appId> standalone
+  App route: https://localhost:<port>/p/<appId>   → this app's route on the gateway (the URL the shell loads it from)
+  First view: <view>   [share.json: <path or reason>]
 ```
 
 Read that block rather than assuming any of it. The `[<source>]` labels exist because every value
 here is resolvable from several places, and the label is the one thing that tells you which place
-won. Open the URL on the `App:` line — it is the address the gateway just bound, not a shape you
-should be deriving yourself.
+won. Open the URL on the `Open:` line, the gateway root: the shell there reads the binding and
+frames your app. The `App route:` URL is the frame's target, with no shell and no sign-in around
+it; the gateway serves `/__descix/app-binding.json` only at the root.
 
 ## Which app gets served
 
 `descix serve` binds **exactly one app per session** and never resolves to a store binding.
 **The store lives elsewhere:** locally it is the platform shell's own dev server
-(`env.platform.site.port`), which serves no app-binding and therefore boots as the store; deployed
+(`env.app.site.port` in the shell repo's own workspace), which serves no app-binding and therefore boots as the store; deployed
 it is the platform origin (`dev.descix.net`, `descix.net`). A catalogue or listing defect is
 debugged there — never through `descix serve`, which has no view that could show it.
 

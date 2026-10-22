@@ -15,9 +15,9 @@ gateway.js                      staticSitePlugin.js
   passes to plugin                serves files from disk
                                          │
                                          ▼
-workspaceProducts.js            PWA
-  maps to gateway URL ──────────→ __WORKSPACE_PRODUCTS__
-  https://localhost:<gw-port>/p/X AppData → AppStoreWidget → CodeSiteWidget (iframe)
+serveBinding.js                 the shell at the gateway root
+  appUrl from gatewayProductUrl ─→ GET /__descix/app-binding.json
+  https://localhost:<gw-port>/p/X STANDALONE_APP → AppSurfaceWidget → CodeSiteWidget (iframe)
 ```
 
 ## Module Reference
@@ -126,9 +126,9 @@ if (p.site?.static) {
 **How this reaches the PWA:**
 - `buildWorkspaceProducts()` is called by `gateway.js` → `buildDefines()`
 - The result is injected as `__WORKSPACE_PRODUCTS__` — a build-time define replacement
-- At runtime, the PWA's `AppData.getProductUrl(appId)` reads from this map
-- `AppStoreWidget` uses the URL to show a "Launch Code Site" button
-- `CodeSiteWidget` loads the URL in an iframe
+- The define reaches only a shell the gateway builds locally. A shell proxied from a deployed origin (the default whenever the API origin is remote) is pre-built and never sees it.
+- The shell finds the served app through the binding instead: `serveBinding.js` answers `GET /__descix/app-binding.json` with `appUrl` = `gatewayProductUrl(port, appId)` = `https://localhost:<gw-port>/p/<appId>`
+- The shell boots in its `STANDALONE_APP` view, and `AppSurfaceWidget` → `CodeSiteWidget` loads `appUrl` in a same-origin iframe
 
 **Gateway port source:** `src/dev/gatewayPort.js::resolveGatewayPort` — the ONE owner, shared by the server and by this product map so the two can never name different ports. Chain: `--port`, then `env.gateway.port`, then the built-in default `5173`.
 
