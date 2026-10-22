@@ -1,12 +1,12 @@
 # Static Site Serving — Architecture
 
-How the DeSciX gateway serves static files for products configured with `site.static` in workspace.json, from local dev to production deployment.
+How the DeSciX gateway serves static files for apps configured with `site.static` in their `.descix/workspace.json`, from local dev to production deployment.
 
 ## System Overview
 
 ```
 workspace.json                  createViteProxyConfig.js
-  env.products[].site.static ──→  resolves absolute path
+  env.app.site.static ─────────→  resolves absolute path
                                   attaches to proxy._staticRoutes
                                          │
                                          ▼
@@ -75,25 +75,23 @@ Request: GET /p/egpt/demos/fractal.html
 
 **Location:** `src/dev/createViteProxyConfig.js` in the published `@descix/app-sdk` package (export `@descix/app-sdk/dev`)
 
-**Relevant Section:** Lines 71-84 — the `env.products` loop.
+**Relevant section:** the loop over the local app set returned by `resolveWorkspaceApps(workspaceRoot)`.
 
-**Logic for `site.static` products:**
+**Logic for a `site.static` app:**
 
 ```javascript
-if (p.site?.static) {
-  const localPath = p.localPath || '.';
-  const staticDir = p.site.static === '.'
-    ? localPath
-    : path.join(localPath, p.site.static);
-  staticRoutes[appId] = path.resolve(workspaceRoot, staticDir);
+} else if (!isShell && app.site?.static) {
+  // Static site: the path is relative to the APP'S OWN repo root (its workspace owns it).
+  staticRoutes[appId] = siteStaticRoot(app.dir, app.site.static);
 }
 ```
 
 **Path Resolution:**
-- `localPath` comes from the product's `localPath` field in workspace.json
-- `site.static` is joined relative to `localPath`
-- Special case: `site.static === "."` means use `localPath` directly (not `path.join(localPath, ".")` which would be equivalent, but the intent is clearer)
-- Final path is resolved to absolute against `workspaceRoot`
+- `resolveWorkspaceApps` (`src/dev/workspaceApps.js`) owns the local app set: the workspace's own `env.app`, served from the workspace root, plus, in a gateway workspace, the app of each repo named by `env.gateway.shell` and `env.gateway.appRepos[]`, read from that repo's own `.descix/workspace.json`
+- `app.dir` is the absolute root of the repo that holds the app
+- `siteStaticRoot` (`src/dev/siteStatic.js`) returns `path.resolve(app.dir, site.static)`; `site.static` `"."` serves the repo root itself
+- `site.static` must be a relative path: a blank, absolute, `~` or URL value is refused when `descix app set-site` writes it and when the gateway reads it
+- The shell app gets no static route: the gateway serves its site at `/` through the root proxy
 
 **Integration with proxy object:** Static routes are attached as `proxy._staticRoutes` rather than as proxy rules. This is a backward-compatible mechanism — `createViteProxyConfig` returns a proxy config object, and `gateway.js` extracts `_staticRoutes` before passing the rest to Vite's proxy.
 
@@ -115,18 +113,17 @@ if (p.site?.static) {
 
 **Location:** `src/dev/workspaceProducts.js` in the published `@descix/app-sdk` package (export `@descix/app-sdk/dev`)
 
-**Static site mapping (lines 32-34):**
+**Product URL mapping:** every app in the local set that has `site.port` or `site.static`, except Powch, gets a gateway-origin URL; the shell app gets the gateway root.
 
 ```javascript
-} else if (p.appId && p.site?.static) {
-  products[p.appId] = `https://localhost:${gatewayPort}/p/${p.appId}`;
-}
+products[app.appId] = app === shellApp
+  ? `${gatewayOrigin(gatewayPort)}/`
+  : gatewayProductUrl(gatewayPort, app.appId);
 ```
 
-**How this reaches the PWA:**
-- `buildWorkspaceProducts()` is called by `gateway.js` → `buildDefines()`
-- The result is injected as `__WORKSPACE_PRODUCTS__` — a build-time define replacement
-- The define reaches only a shell the gateway builds locally. A shell proxied from a deployed origin (the default whenever the API origin is remote) is pre-built and never sees it.
+**How this reaches the shell:**
+- A shell built locally from the shell repo bakes the map into its bundle as the `__WORKSPACE_PRODUCTS__` define: its own Vite config calls `buildWorkspaceProducts()`, and `workspaceProductsPlugin` pushes a fresh map over HMR when `.descix/workspace.json` changes. A production build bakes `null`.
+- A shell proxied from a deployed origin (the default whenever the API origin is remote) is pre-built and never sees the map.
 - The shell finds the served app through the binding instead: `serveBinding.js` answers `GET /__descix/app-binding.json` with `appUrl` = `gatewayProductUrl(port, appId)` = `https://localhost:<gw-port>/p/<appId>`
 - The shell boots in its `STANDALONE_APP` view, and `AppSurfaceWidget` → `CodeSiteWidget` loads `appUrl` in a same-origin iframe
 
@@ -134,24 +131,26 @@ if (p.site?.static) {
 
 ## Configuration Contract
 
-### workspace.json Product Entry
+### workspace.json App Entry
+
+Each app repo's own `.descix/workspace.json` holds one app, `env.app`; the repo root is the workspace root. `descix app set-site --static <dir>` writes `site.static`.
 
 ```json
-{
-  "appId": "egpt",           // Required: unique app identifier
-  "localPath": "EGPT",       // Required: path from workspace root to project
-  "kbId": "General",         // Optional: KB for RAG indexing
-  "site": {
-    "static": "."            // Path relative to localPath; "." = localPath root
-  }
+"app": {
+  "appId": "egpt-mydocs",
+  "communityId": "egpt",
+  "kbId": "General",
+  "site": { "static": "site" }
 }
 ```
 
+`site.static` is a directory relative to the repo root: `site`, `site/dist`, `.` (the root itself) or `../scratch`.
+
 ### Precedence Rules
 
-When a product has both `site.port` and `site.static`, the proxy config code checks `site.port` first (via `if/else if`). A product cannot be both a port-proxied site and a static site simultaneously.
+When an app has both `site.port` and `site.static`, the gateway serves the dev server at `site.port`, and the `descix serve` banner prints a note that `site.static` is ignored while `site.port` is set.
 
-A product can have `site.static` and `microservice.port` — the static site serves the frontend while the microservice handles API calls.
+An app can have `site.static` and `microservice.port`: the gateway serves the static site at `/p/{appId}/` and proxies `/s/{appId}` to the microservice.
 
 ## Production Path
 
@@ -162,10 +161,10 @@ Browser → https://localhost:<gw-port>/p/{appId}/ → staticSitePlugin middlewa
 
 ### Production
 ```
-Browser → {appId}.{env}.descix.net → LB host rule → GCS bucket (/{env}/{appId}/site/)
+Browser → {appId}.descix.net → Cloudflare Worker descix-edge-router → storage.googleapis.com/descix-assets-public/prod/{appId}/site/
 ```
 
-**Note:** `/p/{appId}/` is LOCAL DEV ONLY (staticSitePlugin in gateway). Cloud uses subdomain-based routing via platform LB provisioned at env standup (`provision-platform-lb.js`), with rewrites to `/{env}/{appId}/site/`.
+`/p/{appId}/` exists only on the local gateway (staticSitePlugin). In production the Worker derives `{appId}` and `{env}` from the host (`{appId}.descix.net` is PROD, `{appId}.{env}.descix.net` is another env) and fetches the site from GCS directly. At `{appId}.descix.net/` it serves the App Shell, which frames the app's site at `/prod/{appId}/site/index.html` on the same host.
 
 ### Deployment
 ```bash
@@ -194,7 +193,7 @@ The plugin redirects `/p/{appId}` (no trailing slash) to `/p/{appId}/` (with tra
 
 **Path traversal protection:** After resolving the file path with `path.join(staticRoot, filePath)`, the plugin checks that the resolved path starts with `staticRoot`. This prevents `../../etc/passwd` style attacks.
 
-**No authentication:** Static sites served locally are unauthenticated (same as all local dev). In production, entitlement checks happen at the load balancer / API layer before the static files are served from GCS.
+**No authentication:** Static site files are served without authentication, locally and in production. In production they are public objects in the `descix-assets-public` bucket, and the edge Worker is a router, not an auth gateway; access control is enforced by the services behind `/apifront` and `/api` that the site calls.
 
 ## Design Decisions
 

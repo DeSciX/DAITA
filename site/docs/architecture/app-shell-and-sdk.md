@@ -29,11 +29,13 @@ All apps are peers. App shell is the "OS" for DeSciX apps.
 
 ## Build-Time Identity
 
-When running via `descix-serve`, the gateway injects globals from `workspace.json`:
+The shell reads three Vite defines, compiled into its bundle by the build that produced it:
 
-- `__POWCH_APP_URL__`: resolved by `resolvePowchUrl` from `env.powchUrl` (Powch stays CROSS-origin by design)
-- `__API_GATEWAY_URL__`: the API origin the gateway resolved (`env.apiUrl`, or the `--api-url` / `--env` override for this run) — printed with its source in the startup banner
-- `__WORKSPACE_PRODUCTS__`: map of local apps to their **gateway-origin** URLs — `https://localhost:{gatewayPort}/p/{appId}`, with the platform app at the gateway root. Never an app's own dev-server port: apps are always shell-origin when iframed, or `contentWindow` reach throws a cross-origin `SecurityError`.
+- `__POWCH_APP_URL__`: the Powch origin the shell frames (Powch stays CROSS-origin by design)
+- `__API_GATEWAY_URL__`: the API origin the shell calls
+- `__WORKSPACE_PRODUCTS__`: map of local apps to their **gateway-origin** URLs — `https://localhost:{gatewayPort}/p/{appId}`, with the shell app at the gateway root; `null` in a production build. Never an app's own dev-server port: apps are always shell-origin when iframed, or `contentWindow` reach throws a cross-origin `SecurityError`.
+
+Under `descix serve` these carry workspace values only in a shell built locally from the shell repo, whose own Vite config computes them from `.descix/workspace.json` with the `@descix/app-sdk/dev` helpers `resolvePowchUrl` and `buildWorkspaceProducts`. A shell proxied from a deployed origin (the default whenever the API origin is remote) arrives pre-built with its deployed values and finds the served app through `GET /__descix/app-binding.json`.
 
 There is no `__STANDALONE_APP_ID__` define; it is deleted platform-wide.
 
@@ -46,7 +48,7 @@ When running standalone, apps define these in `vite.config.js`.
 | DeSciX PWA, standalone | `PowchBridgeProvider` + iframe | Powch iframe via `PowchSideBarWidget` |
 | Powch PWA | `PowchAppProvider`, in the Powch app's own React layer (not a published package) | Powch PWA owns its own UI |
 
-**DeSciX PWA does not use Powch's React layer.** It uses `usePowchBridge` and `PowchSideBarWidget` from `@descix/app-sdk`, and its own `SignInButton`. Sign-in sends `bridge.login(descixSessionRequest())`, a request for the session and no personal fields. The session reaches the shell through `window.DeSciX.loginWithSessionToken(result)` followed by `LOGIN_SUCCESS`: `PowchBridgeClient` makes that call itself for every Powch message that carries a session.
+**DeSciX PWA does not use Powch's React layer.** It uses `usePowchBridge` and `PowchSideBarWidget` from `@descix/app-sdk`, and its own `SignInButton`. Sign-in sends `bridge.login({ purpose: 'Sign in to DeSciX', registerDeSciX: true })`, a request for the session and no personal fields. The session reaches the shell through `window.DeSciX.loginWithSessionToken(result)` followed by `LOGIN_SUCCESS`: `PowchBridgeClient` makes that call itself for every Powch message that carries a session.
 
 ## State Flow
 
