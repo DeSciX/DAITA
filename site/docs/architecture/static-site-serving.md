@@ -187,7 +187,8 @@ The plugin redirects `/p/{appId}` (no trailing slash) to `/p/{appId}/` (with tra
 
 - HTML files use relative paths for assets (`./styles.css`, `./app.js`)
 - Without the trailing slash, the browser resolves relative paths against `/p/` instead of `/p/{appId}/`
-- This matches the production behavior where GCS serves directories with trailing slashes
+
+Production has no such redirect. The edge Worker answers a GCS 404 on the static channel with the site's root `index.html` (`/{env}/{appId}/site/index.html`), under the original URL, when the request is a GET whose last path segment has no file extension and that either ends in `/` or sends `Accept: text/html`. A subdirectory's own `index.html` is never looked up: `/prod/{appId}/site/docs/` returns the site root's `index.html`, where the local gateway serves `docs/index.html`. Link to a nested page by its file name (`docs/index.html`) so both serve the same file.
 
 ## Security
 
