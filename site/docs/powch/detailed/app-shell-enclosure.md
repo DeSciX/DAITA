@@ -12,29 +12,37 @@ In every case, the Powch App runs with its own full App Shell (App.jsx, AppConte
 
 ## Case 1 — descix.net (Platform)
 
+The frame trees of Cases 1 and 2 are owned by the platform architecture page *Powch, the app shell and app routing: the frame model, as built* (§2); the diagrams below match it. The app shown is `egpt-frqtl`.
+
 ```mermaid
 flowchart TB
-    subgraph outer [Outer Shell - Browser Level]
-        Host[DeSciX PWA]
+    subgraph topdoc ["Top document — https://descix.net/ (the store shell)"]
+        Shell["App Shell: TopNavBar, window.DeSciX bus"]
+        Chat["ChatWidget (rendered in this document, beside the code-site frame)"]
+        CodeSite[CodeSiteWidget]
+        Sidebar[PowchSideBarWidget]
     end
-    subgraph sidebar [Powch Sidebar]
-        Iframe[iframe src=powch URL]
+    subgraph appframe ["iframe Code Site — https://descix.net/prod/egpt-frqtl/site/ — SAME ORIGIN as the top"]
+        AppSite["The app's static site + DeSciXAppSDK.js (no shell, no chat, no Powch)"]
     end
-    subgraph inner [Inner Shell - Powch Iframe]
-        Shell2[App Shell Instance]
-        PowchUI[PowchStandaloneApp]
+    subgraph powchframe ["iframe powch-standalone-iframe — https://powch.descix.net/ — CROSS ORIGIN"]
+        Shell2["Powch's own AppShell appId=powch standalone"]
+        PowchUI["PowchAppProvider → PowchStandaloneApp"]
     end
-    Host --> Iframe
-    Iframe --> Shell2
+    Shell --> Chat
+    Shell --> CodeSite
+    Shell --> Sidebar
+    CodeSite --> appframe
+    Sidebar --> powchframe
     Shell2 --> PowchUI
 ```
 
-- **Outer shell:** DeSciX PWA (App.jsx, AppContext, AppData) — the main browser window
-- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` (https://powch.descix.net/ on PROD, https://powch.dev.descix.net/ on DEV; a local build takes the URL `resolvePowchUrl` returns)
-- **Inner shell:** The iframe loads the Powch PWA — its own root app (PowchStandaloneApp) with its own isolated shell surface; standalone binding is runtime (`descix serve` / edge), never a build-time app id
-- **Two app shells:** Host owns the iframe; Powch has its own isolated Shell (session, makeCommandRequestJSON, window.DeSciX) inside the iframe
-- **Communication:** postMessage via PowchBridgeClient / PowchSideBarWidget
-- **standalone-vanilla sample:** Models this pattern — host creates iframe, uses PowchClient postMessage; correct for all host scenarios
+- **Top document:** the store shell at `descix.net`. It renders the top bar, the chat widget, the code-site frame and the Powch sidebar, and publishes `window.DeSciX`.
+- **Code-site frame:** the app's site, served on the shell's own origin at `descix.net/prod/<appid>/site/`. Shell and app talk by direct JavaScript (the shell's `window.DeSciX`), not by messages.
+- **Powch sidebar iframe:** `src` = `__POWCH_APP_URL__` (https://powch.descix.net/ on PROD, https://powch.dev.descix.net/ on DEV; a local build takes the URL `resolvePowchUrl` returns), cross-origin with the shell, at depth 1.
+- **Inner shell:** the iframe loads the Powch PWA, which runs its own App Shell (session, makeCommandRequestJSON, window.DeSciX) around PowchStandaloneApp. Powch declares `standalone` in its own code; see Case 3.
+- **Communication:** postMessage only, between the shell's PowchBridgeClient / PowchSideBarWidget and Powch, pinned to origins.
+- **standalone-vanilla sample:** a host with no DeSciX shell; its PowchClient creates the Powch iframe and talks to it by postMessage. Under a DeSciX shell (Cases 1 and 2) PowchClient delegates to the shell's bridge instead of creating an iframe.
 
 ---
 
@@ -42,28 +50,31 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph outer [Outer Shell - Browser Level]
-        Host[DeSciX PWA]
+    subgraph topdoc ["Top document — https://egpt-frqtl.descix.net/ (the same shell bundle, the app's own instance)"]
+        Shell["App Shell: TopNavBar, window.DeSciX bus; binding served by the edge, mode standalone"]
+        Chat["ChatWidget (rendered in this document, beside the code-site frame)"]
+        CodeSite[CodeSiteWidget]
+        Sidebar[PowchSideBarWidget]
     end
-    subgraph content [Main Content]
-        AppIframe[App iframe]
+    subgraph appframe ["iframe — https://egpt-frqtl.descix.net/prod/egpt-frqtl/site/ — SAME ORIGIN as the top"]
+        AppSite["The app's static site + DeSciXAppSDK.js (no shell, no chat, no Powch)"]
     end
-    subgraph sidebar [Powch Sidebar]
-        PowchIframe[Powch iframe]
+    subgraph powchframe ["iframe — https://powch.descix.net/ — CROSS ORIGIN"]
+        Shell2["Powch's own AppShell appId=powch standalone"]
+        PowchUI["PowchAppProvider → PowchStandaloneApp"]
     end
-    subgraph inner [Inner Shell - Powch Iframe]
-        Shell2[App Shell Instance]
-        PowchUI[PowchStandaloneApp]
-    end
-    Host --> AppIframe
-    Host --> PowchIframe
-    PowchIframe --> Shell2
+    Shell --> Chat
+    Shell --> CodeSite
+    Shell --> Sidebar
+    CodeSite --> appframe
+    Sidebar --> powchframe
     Shell2 --> PowchUI
 ```
 
-- Same as Case 1: host PWA + Powch sidebar iframe
-- Main content is the target app iframe; Powch sidebar is shown for auth/pay
-- Powch always runs in its own full Shell instance inside its iframe
+- **Top document:** the same shell bundle, served by the edge at the app host's root. It is a second instance of the shell at a second origin, a sibling of `descix.net`, not framed by it. The edge serves its binding (`/__descix/app-binding.json` with mode `standalone` and the app id), so it boots straight into the app.
+- **Code-site frame:** the app's site on the app host's own origin at `<appid>.descix.net/prod/<appid>/site/`, same-origin with the shell; the bytes are the ones Case 1 frames.
+- **Chat widget:** rendered in the top shell document, as in Case 1.
+- **Powch sidebar:** the same Powch document as in Case 1, cross-origin at depth 1, running in its own full Shell instance.
 
 ---
 
@@ -78,7 +89,7 @@ flowchart TB
     Shell --> PowchUI
 ```
 
-- Single PWA instance: the Powch PWA is its OWN root app (standalone binding is runtime — `descix serve` / edge — never a build-time app id)
+- Single PWA instance: the Powch PWA is its OWN root app. Powch declares `standalone` in its own code: its site entry mounts `<AppShell appId="powch" standalone>`. A shell that declares `standalone` never probes for a served binding (app-sdk SdkInitializer), and the edge serves none at `powch.<env>.descix.net` (`/__descix/app-binding.json` answers 404)
 - The Powch PWA renders PowchStandaloneApp directly as its root; no shell widget is involved
 - No Powch sidebar — main content is Powch
 - PowchAppProvider, window.DeSciX, session — all in the same window

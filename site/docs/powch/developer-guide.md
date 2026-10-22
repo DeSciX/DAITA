@@ -133,23 +133,22 @@ See [powch-state-machine.md](./detailed/powch-state-machine.md) for the full pro
 
 ---
 
-### Embedded Apps and the App Shell (Case 3)
+### Powch's own App Shell (Case 3)
 
-Powch in standalone mode (powch.descix.net) is embedded inside the DeSciX App Shell. It requires the shell to function.
+Powch runs inside its OWN App Shell instance: its site entry mounts `<AppShell appId="powch" standalone>` around PowchAppProvider and PowchStandaloneApp. At `powch.<env>.descix.net` as the top window that shell is the only one. As the sidebar (Cases 1 and 2) the host's shell frames this same Powch document cross-origin and talks to it only by postMessage; Powch never uses the host's shell. Powch requires its own shell to function.
 
-**Required bridge:** `window.DeSciX` must be present with at least:
+**Required bridge:** Powch's own `window.DeSciX` must be present with at least:
 
-- `mode === 'standalone'`
 - `call(command, params)` — API gateway for all network calls (powch_register_finish, powch_vault_get, etc.)
 - `AppData` — session storage (sessionInfo, loginStatus)
 - `AppContext.setAppEvent` — to signal LOGIN_SUCCESS and state changes
 
-**Blocking check:** On `INITIALIZE`, PowchAppProvider checks for the shell. If missing, it shows `SHELL_MISSING` and does not initialize:
+**Blocking check:** On `INITIALIZE`, PowchAppProvider asks `shellInitGate` whether it may initialize. The gate keys on whether `window.DeSciX` exists, never on its mode string: in the cross-origin sidebar the shell reports mode `embedded-no-bridge` and Powch must still initialize. If the bridge object is missing, Powch shows the error view and does not initialize:
 
 ```javascript
-// PowchAppProvider.jsx ~line 312
-const shell = window.DeSciX;
-if (!shell || shell.mode !== 'standalone') {
+// PowchAppProvider.jsx, INITIALIZE
+const gate = shellInitGate(window.DeSciX);   // ok when window.DeSciX exists, whatever its mode
+if (!gate.ok) {
   PowchData.error = 'System Initialization Failed: App Shell bridge not established.';
   viewRouter({ flow: FLOW_STATES.ERROR });
   return;
@@ -158,7 +157,7 @@ if (!shell || shell.mode !== 'standalone') {
 
 **Network bridge:** All Powch network calls go through `window.DeSciX.call` (makeCommandRequestJSON), which hydrates sessionInfo from responses and enables powch_vault_put / powch_vault_get with NOT_AUTHENTICATED.
 
-**Implication:** Powch cannot run standalone without the App Shell. The Shell provides routing, session hydration, and the DeSciX API surface.
+**Implication:** Powch cannot run without its own App Shell. That shell provides routing, session hydration, and the DeSciX API surface.
 
 ---
 
