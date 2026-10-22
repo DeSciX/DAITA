@@ -29,14 +29,14 @@ Every quoted output below is what the CLI printed on a real run against the refe
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix <command>
+npx -y -p @descix/cli@4.3.0 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "4.2.0" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "4.3.0" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 - Read a command's flags from the CLI itself: `descix <group> <command> --help` prints that
@@ -44,13 +44,13 @@ npx -y -p @descix/cli@4.2.0 descix <command>
   commands that do: `error: unknown command 'uplod'` then `'descix site' has: delete, init,
   list, status, upload`.
 
-**Verify:** `npx -y -p @descix/cli@4.2.0 descix --version` prints `4.2.0`.
+**Verify:** `npx -y -p @descix/cli@4.3.0 descix --version` prints `4.3.0`.
 
-`@descix/app-sdk` 0.6.0 is the library your site code imports. Its entry points are
+`@descix/app-sdk` 0.7.0 is the library your site code imports. Its entry points are
 `@descix/app-sdk` (the React components, among them `AppShell`, `AppProvider`, `PowchClient`,
 `VIEW_MODES` and `requestView`), `@descix/app-sdk/AppShell`, `@descix/app-sdk/AppData`,
-`@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/dev` and
-`@descix/app-sdk/scaffold`; its peer dependencies are `react` and `react-dom` `^18.0.0 || ^19.0.0`.
+`@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/chat-context`,
+`@descix/app-sdk/pending-intent`, `@descix/app-sdk/dev` and `@descix/app-sdk/scaffold`; its peer dependencies are `react` and `react-dom` `^18.0.0 || ^19.0.0`.
 A plain HTML site uses the `DeSciXAppSDK.js` script that `descix site init` copies in (§5.2)
 instead.
 
@@ -65,7 +65,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@4.2.0 descix config init --env prod
+npx -y -p @descix/cli@4.3.0 descix config init --env prod
 ```
 
 ```
@@ -85,7 +85,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix login
+npx -y -p @descix/cli@4.3.0 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -93,12 +93,30 @@ npx -y -p @descix/cli@4.2.0 descix login
 see **Complete CLI Login**, then one button, **Sign In with Powch**; clicking it opens the Powch
 panel on the right edge of the window, the passkey ceremony runs in that panel, and the page
 ends with **CLI Login Complete — You can return to your terminal.** The credentials are saved to
-`.descix/wallet.json` in your workspace root. In Chrome and Edge on desktop and Android, a
-first-time account is created by the same ceremony; there is no separate sign-up. Safari on iOS
-refuses to create a passkey inside the Powch panel, because the panel is a frame from another
-origin (WebKit: `The origin of the document is not the same as its ancestors`); signing in there
-with an existing passkey works. On iOS, create the account at `https://powch.descix.net/` opened
-in its own Safari tab, then sign in.
+`.descix/wallet.json` in your workspace root.
+
+**A first-time account** starts from **New User** in the same panel. The panel is a frame from
+another origin, so that tap opens Powch's own page, `https://powch.descix.net/`, in a new window;
+the passkey is created there, the window closes, and the panel continues signed in with the new
+account, with no further tap. An app does nothing for this: the shell's Powch panel and the
+standalone frame `PowchClient` creates both allow the window. Signing in with an existing passkey
+runs inside the panel.
+
+**One email, one account.** The account's email is verified with a 6-digit code inside the
+signed-in Powch session: `powch_send_verification_code` and `powch_verify_code` refuse a caller
+without a session (401) and are not guest commands, and `powch_check_verification_proof` does not
+exist. A code verifies only for the account that requested it, and an email that another account
+holds cannot be attached. Each refusal is a 403 whose `error_code` names it, and Powch shows each
+as its own message on the email step:
+
+| `error_code` | Meaning | What the user does |
+|---|---|---|
+| `EMAIL_ALREADY_REGISTERED` | another passkey account holds the email | sign in with that account's passkey, or use a different email |
+| `EMAIL_ALREADY_REGISTERED_LEGACY` | the email belongs to an account created before passkeys | use a different email |
+| `EMAIL_VERIFICATION_NOT_YOURS` | another account requested the code for this email | request a new code and verify it |
+| `EMAIL_NOT_VERIFIED` | no verified code for this email | request a code and enter it |
+| `EMAIL_VERIFICATION_EXPIRED` | the code was sent more than 15 minutes ago | request a new code |
+| `EMAIL_VERIFICATION_UNBOUND` | the code was issued before codes were bound to accounts | request a new code |
 
 **The passkey trap:** `descix login` signs in with whichever passkey the browser offers first.
 If the account is wrong, run `descix logout`, then `descix login` again and pick the right
@@ -108,7 +126,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix whoami
+npx -y -p @descix/cli@4.3.0 descix whoami
 ```
 
 ```
@@ -128,7 +146,7 @@ root. Run `app init` **from the repo root**, in a checkout that is not inside an
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app init -a <app_id>
+npx -y -p @descix/cli@4.3.0 descix app init -a <app_id>
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -152,7 +170,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app init -a <name> -c <community>
+npx -y -p @descix/cli@4.3.0 descix app init -a <name> -c <community>
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -371,7 +389,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -396,7 +414,7 @@ npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static site
 Then, from the repo root or any directory below it:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix serve
+npx -y -p @descix/cli@4.3.0 descix serve
 ```
 
 `descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
@@ -453,8 +471,8 @@ inside the shell with sign-in, point THIS app's static route at them for the ses
 the tracked config back. From the app's own checkout, with the scratch directory beside it:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static ../<dir>
-npx -y -p @descix/cli@4.2.0 descix serve
+npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@4.3.0 descix serve
 ```
 
 Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
@@ -638,9 +656,9 @@ Three rules that save you an afternoon:
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@4.2.0 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@4.2.0 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@4.3.0 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -704,7 +722,7 @@ Each chunk carries its source's `doc_class`. The full field reference is
 `@descix/cli` 4.1.0 or later:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
+npx -y -p @descix/cli@4.3.0 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
 ```
 
 It needs the app's owner, or an app, community or platform admin. A KB that already exists is a
@@ -719,7 +737,7 @@ would make it. Only `app init -c`, which creates the app, creates its first KB.
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@4.3.0 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -730,7 +748,7 @@ The reply's `📚 Sources:` line reads `<file> [ID: corpus:<sha>]`, and `<sha>` 
 to see the raw chunks instead, query the KB:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
+npx -y -p @descix/cli@4.3.0 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
 ```
 
 `.message.results` holds the matching chunks; each row's `metadata.blob_sha` is the committed
@@ -746,7 +764,7 @@ default, a pointer the platform holds on the app record (`knowledgebase_name`). 
 community:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
+npx -y -p @descix/cli@4.3.0 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
 ```
 
 Each app's entry carries `"knowledgebase_name": "<kb_name>"`; `descix kb list -a <app_id>` lists
@@ -757,7 +775,7 @@ the KBs the app has.
 The app's owner, or an app, community or platform admin, repoints it to a KB the app already has:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
+npx -y -p @descix/cli@4.3.0 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
 ```
 
 A KB the app does not have is refused and nothing is written:
@@ -771,7 +789,7 @@ The chat's voice is the default KB's system instructions; the app has no persona
 them. Read them with:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
+npx -y -p @descix/cli@4.3.0 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
 ```
 
 `.message.app.default_prompt` is the default KB's system instructions, and
@@ -782,7 +800,7 @@ names a KB the app does not have, `default_prompt` is `null` and `source` is `nu
 defaults to `General` whatever the app's default is. Always pass `-k` with the default KB's name:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app sync-assets -a <app_id> -k <kb_name>
+npx -y -p @descix/cli@4.3.0 descix app sync-assets -a <app_id> -k <kb_name>
 ```
 
 The same command writes `assets/app_description.md` and `assets/icon.png` to the app record.
@@ -927,7 +945,7 @@ generic head for up to 5 minutes — wait it out; nothing is wrong.
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -949,7 +967,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id>
+npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -962,7 +980,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@4.3.0 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -1035,8 +1053,12 @@ browser TTL you must design for is the edge's, above.
 
 `site upload` (not a preview upload) also purges the edge: it evicts every uploaded non-HTML file,
 and every file the upload removed, from the Cloudflare cache. The upload response carries the result
-as `purge {status, attempted, purged}`, plus `failed` naming each batch that did not purge; a failed
-purge never fails the upload. `@descix/cli` 4.2.0 does not print it. Two limits:
+as `purge {status, attempted, purged}`, plus `failed` naming each batch that did not purge. The CLI
+prints it as one line, `edge purge: ok, 33/33 cache keys` (each stale path is purged once plain and
+once per page origin, so the count is cache keys, not files). When the purge is not complete, or
+the response carries no receipt, the command prints the failed batches and exits non-zero: the
+deploy is confirmed, but the edge may serve stale copies until their cache TTL, and re-running the
+same `site upload` re-purges every file. Two limits:
 
 - A name in the 5-minute class (`manifest.json`, `favicon.ico`, `share.json`, …) can still be served
   stale from one Cloudflare location for up to 300 seconds after the purge. Vite build output in
@@ -1050,7 +1072,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@4.3.0 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -1065,7 +1087,7 @@ For everything this page does not cover — backend commands, payments, model tu
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@4.2.0 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@4.3.0 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -1075,15 +1097,15 @@ page, is the whole handbook; when neither answers, apply the wall rule at the to
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@4.2.0 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@4.2.0 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@4.2.0 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@4.2.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
-npx -y -p @descix/cli@4.2.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@4.2.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@4.2.0 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
-npx -y -p @descix/cli@4.2.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@4.2.0 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@4.2.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@4.3.0 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@4.3.0 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@4.3.0 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@4.3.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
+npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@4.3.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
+npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
+npx -y -p @descix/cli@4.3.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@4.3.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
