@@ -52,7 +52,11 @@ For Powch (passkey) users, the **user ID is the WebAuthn `credentialId`** (stabl
 
 The **credentialId is determined by the authenticator** (e.g. Secure Enclave) at passkey allocation—the single WebAuthn registration ceremony. It is not chosen by the server or by `powch_register_begin`; it is returned in the attestation response after the user completes the biometric step. CloudKey is derived from PRF output and credentialId via a domain-separated KDF; the master wallet is derived from CloudKey.
 
-Email is NOT the primary ID. It is an optional verified attribute added later (and may be indexed via a future EmailIndex).
+Email is NOT the primary ID; it is a required verified attribute, and one email belongs to one account (eabadir/Unkamon#85):
+
+- `powch_send_verification_code` / `powch_verify_code` need the caller's session; the `EmailVerifications` record stores the requesting uid, and only that uid can verify it (`EMAIL_VERIFICATION_NOT_YOURS`) or attach the email.
+- `descix_accept_tos` calls `assertEmailVerifiedFor(uid, email)` (record requested by this uid, verified, not past `expires_at`; a record with no uid field is refused as `EMAIL_VERIFICATION_UNBOUND`) and `User.assertEmailFreeFor(uid, email)` (`EMAIL_ALREADY_REGISTERED` when another passkey account holds the email; `EMAIL_ALREADY_REGISTERED_LEGACY` when the only holder is a pre-passkey account whose USERS doc id is the email). Each refusal is a 403 with that `error_code`; the Powch client shows each reason as its own message on the email step.
+- `User.commitTosAndConnect` writes the `email_<hash>` ProviderIndex row, so `User.findByEmail` finds Powch accounts.
 
 ### Low Trust Session
 
