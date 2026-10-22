@@ -8,8 +8,8 @@ second copy here would be the mirror that drifts.
 
 ## What `descix serve` is
 
-A pure HTTPS reverse proxy that replicates the production GCP Load Balancer locally, so the App
-Shell, your app and `/apifront` share ONE origin. **It starts nothing else** — no backend, no app
+A local HTTPS gateway that puts the App Shell, your app and `/apifront` on ONE origin, as the
+Cloudflare Worker `descix-edge-router` does for a production host. **It starts nothing else** — no backend, no app
 dev server. An unreachable target surfaces as a 502/`ECONNREFUSED`, never a fallback. Start your
 own services first; `serve` only routes to whatever is already listening.
 
