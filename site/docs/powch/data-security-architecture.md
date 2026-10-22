@@ -15,12 +15,12 @@ This document describes the data model, storage layers, and security boundaries 
 ### 1.2 Enclave as Source of Truth
 
 - **Tier 1 and Tier 2 data live in the cloud vault (encrypted with CloudKey derived from PRF + credentialId). The vault blob is stored server-side; CloudKey is never stored.
-- **Every Tier 1/2 write is an atomic commit.** `saveCard()` re-encrypts the full BlobV3 and writes it to the cloud vault via `putVault`. No partial or incremental blob updates.
+- **Every Tier 1/2 write is an atomic commit.** `saveCards()` / `saveCard()` re-encrypts the full BlobV3 and writes it to the cloud vault via `putVault`. No partial or incremental blob updates.
 - **Read path is unlock-then-read.** The app does not read “pieces” of the blob; it authenticates, decrypts the whole blob, and then serves from in-memory `_vault`.
 
 ### 1.3 Single Abstraction for Consumers
 
-- **PowchData is the only data API.** UI and flow controllers call `PowchData.getCards()`, `PowchData.saveCard()`, `PowchData.getTier3Cards()`, `PowchData.unlock()`, `PowchData.createPasskeyBlob()`, and `PowchData.signTransaction` / `signMessage` / `signTypedData`. They do not call vaultOps or low-level decrypt/encrypt for unlock or signing; they never touch `PowchVault`, `Tier3Store`, or vaultOps directly. See [architecture.md](./architecture.md) for SyncManager and flow detail.
+- **PowchData is the only data API.** UI and flow controllers call `PowchData.getCards()`, `PowchData.saveCard()`, `PowchData.getTier3Cards()`, `PowchData.unlockWithOptions(options)`, `PowchData.createPasskeyBlobWithCachedOptions()`, and `PowchData.signTransaction` / `signMessage` / `signTypedData`. They do not call vaultOps or low-level decrypt/encrypt for unlock or signing; they never touch `PowchVault`, `Tier3Store`, or vaultOps directly. See [architecture.md](./architecture.md) for SyncManager and flow detail.
 
 ### 1.4 PII Consent Paradigm
 
@@ -85,7 +85,7 @@ Type-specific schemas (e.g. which keys go in `meta` vs `secret`) are defined in 
   - **activeCards:** Map of card type to selected card ID (e.g. “current” wallet for this device).
   - **siteConsent:** Map of origin to consent/sharing settings (e.g. email, walletAddress allowed for that site).
 - **Encryption:** AES-GCM using a key derived from the same PRF output (with a distinct info string for “session-encryption”). Encrypt/decrypt helpers live in **vaultOps.js** (`encryptSession` / `decryptSession`).
-- **Load/save:** Tier3Store is loaded in `PowchData.unlock()` (after SyncManager.read() returns) and saved when consent or Tier 3 cards change (when `_prfKey` is set). When the vault is locked, Tier3Store is not decrypted; PowchData exposes empty/default values for Tier 3 APIs until unlock.
+- **Load/save:** Tier3Store is loaded in `PowchData.unlockWithOptions()` (after SyncManager.readWithOptions() returns) and saved when consent or Tier 3 cards change (when `_prfKey` is set). When the vault is locked, Tier3Store is not decrypted; PowchData exposes empty/default values for Tier 3 APIs until unlock.
 
 ---
 
@@ -97,7 +97,7 @@ Type-specific schemas (e.g. which keys go in `meta` vs `secret`) are defined in 
 - **Layered storage engine:** Presents a single API; internally uses in-memory vault + Tier3Store and, for Tier 1/2, the enclave as backing store.
 - **PRF key holder:** Holds the derived key in memory only when unlocked; clears it on `lock()` and `reset()`.
 - **Event source:** Emits `PowchAppEvent` and `PowchViewEvent` so the React layer can react without being passed callbacks for every mutation.
-- **Ceremony orchestration:** Delegates enclave read/create/write to `SyncManager` (`read()`, `createCredential()`, `writeToEnclave()`), which uses an injected `CeremonyProvider` so that WebAuthn and network are not hard-coupled inside core. See [architecture.md](./architecture.md).
+- **Ceremony orchestration:** Delegates enclave read/create/write to `SyncManager` (`readWithOptions()`, `createCredentialWithCachedOptions()`, `writeToEnclave()`, `getPrfForExport()`, each with options fetched before the tap), which uses an injected `CeremonyProvider` so that WebAuthn and network are not hard-coupled inside core. See [architecture.md](./architecture.md).
 
 ### 4.2 Internal State (Static)
 
@@ -115,8 +115,8 @@ No Tier 1/2 plaintext persists in any variable when the vault is locked; `_vault
 ### 4.3 Lifecycle
 
 - **initialize():** Loads `credentialId` from localStorage; sets `_vault` to empty PowchVault and `_tier3` to empty Tier3Store. Does not decrypt anything.
-- **unlock():** Parameterless. Calls SyncManager.read(); sets credentialId, _prfKey. If blob is non-null: hydrates _vault from blob, loads Tier3Store. If blob is null (new user): sets empty _vault and new Tier3Store. Sets app state to VAULT_UNLOCKED, emits VAULT_UNLOCKED. Timeout is started inside SyncManager.read().
-- **createPasskeyBlob():** Calls SyncManager.createCredential(); sets credentialId, _prfKey, empty _vault and Tier3Store. For new users. Emits VAULT_UNLOCKED.
+- **unlockWithOptions(options):** Takes the sign-in options fetched by `beginLoginOptions()` before the tap. Calls SyncManager.readWithOptions(options), whose first await is navigator.credentials.get(); sets credentialId, _prfKey. If blob is non-null: hydrates _vault from blob, loads Tier3Store. If blob is null (new user): sets empty _vault and new Tier3Store. Sets app state to VAULT_UNLOCKED, emits VAULT_UNLOCKED. Timeout is started inside SyncManager.readWithOptions().
+- **createPasskeyBlobWithCachedOptions(options, data):** Calls SyncManager.createCredentialWithCachedOptions(options) (create() is the first await; options fetched before the tap); sets credentialId, _prfKey, empty _vault and Tier3Store. For new users. Emits VAULT_UNLOCKED.
 - **lock():** Clears `_prfKey`, replaces `_vault` and `_tier3` with empty instances, sets app state to LOCKED, clears timeout, emits VAULT_LOCKED.
 - **reset():** Calls `lock()`, clears `credentialId`, removes `enc_powch_t3` from localStorage, emits LOGOUT.
 
@@ -124,9 +124,9 @@ No Tier 1/2 plaintext persists in any variable when the vault is locked; `_vault
 
 ## 5. SyncManager and Enclave Operations
 
-- **SyncManager** is owned by PowchData. It exposes **read()** (WebAuthn get + PRF; derive CloudKey, fetch vault, decrypt; returns `{ blob | null, prfKey, credentialId }`), **createCredential()** (WebAuthn create; derives CloudKey from PRF + credentialId), and **writeToEnclave(vault, credentialId)** (WebAuthn get + PRF; derive CloudKey, encrypt, putVault). No largeBlob. See [architecture.md](./architecture.md) for full detail.
+- **SyncManager** is owned by PowchData. It exposes **readWithOptions(options)** (WebAuthn get + PRF; derive CloudKey, fetch vault, decrypt; returns `{ blob | null, prfKey, credentialId }`), **createCredentialWithCachedOptions(options)** (WebAuthn create; derives CloudKey from PRF + credentialId), and **writeToEnclave(vault, credentialId, options)** (WebAuthn get + PRF; derive CloudKey, encrypt, putVault). No largeBlob. See [architecture.md](./architecture.md) for full detail.
 - **CeremonyProvider** is injected by the host (e.g. PowchAppProvider) and provides beginLogin, finishLogin, authenticate (read); beginRegistration, createCredential, finishRegistration (create); beginWalletWrite, authenticate (write).
-- **Vault timeout:** SyncManager starts or resets the timer at the end of read(), createCredential(), and writeToEnclave(). When the timer fires, it calls `PowchData.lock()` and emits VAULT_LOCKED. Default 15 minutes (configurable in code).
+- **Vault timeout:** SyncManager starts or resets the timer at the end of readWithOptions(), createCredentialWithCachedOptions(), and writeToEnclave(). When the timer fires, it calls `PowchData.lock()`, the one emitter of VAULT_LOCKED. Default 15 minutes (configurable in code). A vault lock is not a sign-out: the App Shell's session (`AppData.sessionInfo`) stays until the token itself is refused (a 401) or the user logs out; a 401 locks the vault through `registerSessionExpiryCallback`.
 
 ---
 
@@ -137,16 +137,16 @@ No Tier 1/2 plaintext persists in any variable when the vault is locked; `_vault
 | Credential ID | localStorage `powch_credential_id` | No (required for WebAuthn) |
 | Tier 1/2 data | Cloud vault (PowchVaults) | Yes (AES-GCM, CloudKey from PRF+credentialId) |
 | Tier 3 data | localStorage `enc_powch_t3` | Yes (AES-GCM, PRF-derived session key) |
-| Per-site session | localStorage `powch_session_<origin>` | No (clear on disconnect) |
+| DeSciX session of Powch's own App Shell | localStorage `sessionInfo`, `loginStatus` (app-sdk `AppData`) at the Powch origin | No |
 
-Nothing else sensitive is written to localStorage or sessionStorage. In-memory state is cleared on lock/reset.
+Nothing else sensitive is written to localStorage or sessionStorage. In-memory state is cleared on lock/reset. A host's own session lives in the host origin's storage, never Powch's.
 
 ---
 
 ## 7. Public API (Summary)
 
-- **Initialization / lifecycle:** `initialize()`, `unlock()`, `createPasskeyBlob()`, `lock()`, `reset()`, `completeAuth(result)`.
-- **Tier 1/2 cards:** `getCards(type?)`, `saveCard(card)`.
+- **Initialization / lifecycle:** `initialize()`, `unlockWithOptions()`, `createPasskeyBlobWithCachedOptions()`, `lock()`, `reset()`, `completeAuth(result)`.
+- **Tier 1/2 cards:** `getCards(type?)`, `saveCards(cards, options)`, `saveCard(card, options)`, `removeCard(cardOrId, options)` (options from `beginWriteOptions()`, fetched before the tap).
 - **Tier 3:** `getTier3Cards(type?)`, `saveTier3Card(card)`.
 - **Resolve and signing (use cached `_prfKey` when vault unlocked):** `resolveAddress(address)` returns `{ walletId: cardId, keyIndex }` or null; `signTransaction(cardId, txData, makeRequest)`, `signMessage(cardId, message, makeRequest)`, `signTypedData(cardId, domain, types, value, makeRequest)`.
 - **Accessors:** `credentialId`, `isUnlocked`, `hasCredential`, `email`, `displayAddress`, `isAuthenticated`, `selectedWalletId`, `appState`, etc.
@@ -162,10 +162,10 @@ Nothing else sensitive is written to localStorage or sessionStorage. In-memory s
 - **displayAddress:** First CRYPTO_WALLET card’s `meta.address`, or null.
 - **isAuthenticated:** True if any EMAIL card exists (when unlocked).
 - **getSites / getSiteSettings / setSiteSettings / removeSite:** Delegated to Tier3Store’s siteConsent; when vault is locked, Tier3 is not loaded so getSites returns [] and getSiteSettings returns null.
-- **clearStoredSession(origin):** Removes `powch_session_<origin>` from localStorage.
+- **clearStoredSession(origin):** Same effect as `removeSite(origin)`: clears that origin's siteConsent and SITE_PASS card.
 - **selectedWalletId:** Resolves from Tier3 active card selection when set.
 
-AuthFlowController calls **PowchData.unlock()** (or **PowchData.createPasskeyBlob()** for new users); it does not call decrypt or deriveEncryptionKey directly. After CollectEmailView returns verified email, the flow creates an EMAIL card and calls **PowchData.saveCard(emailCard)**. See [architecture.md](./architecture.md) for the current auth flow state machine.
+AuthFlowController calls **PowchData.unlockWithOptions(options)** on the sign-in tap (or **PowchData.createPasskeyBlobWithCachedOptions(options, data)** on the New-account tap); it does not call decrypt or deriveEncryptionKey directly. After CollectEmailView returns verified email, the flow creates an EMAIL card and calls **PowchData.saveCard(emailCard)**. See [architecture.md](./architecture.md) for the current auth flow state machine.
 
 ---
 

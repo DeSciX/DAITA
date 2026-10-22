@@ -1001,8 +1001,9 @@ passes it through to the browser unchanged (measured per class on the live host)
 | File class | Cache-Control (bound at upload, served verbatim) | What a browser holds it for |
 |---|---|---|
 | `*.html` — by extension, at any depth (`index.html`, `pub/experiments/<id>/index.html`, …) | `no-cache, no-store, must-revalidate` | never cached — every visit refetches |
-| Content-hashed assets (`name-<hash>.js/css/...`, hash ≥ 8 chars — what Vite emits) | `public, max-age=31536000, immutable` | forever — a new build emits new names, nothing to bust |
-| Everything else (non-hashed `.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | up to **5 minutes** stale |
+| Vite build output: a file directly in the site's top-level `assets/` folder named `<name>-<hash>.<ext>`, the hash exactly 8 characters of `[A-Za-z0-9_-]` (`assets/index-DDsCZauW.js`) | `public, max-age=31536000, immutable` | a year — a new build emits new names, nothing to bust |
+| Any file under a `pub/<build>/` folder, `<build>` 8 to 40 hex characters (`pub/3f9c2a1b/engine.js`) | `public, max-age=31536000, immutable` | a year — a new build is a new folder |
+| Everything else, including hashed-looking names anywhere else (`app-assets/index-DDsCZauW.js`, `lib/assets/…`, `frqtl-web-project.js`, `favicon.ico`, `manifest.webmanifest`, JSON, …) | `public, max-age=300, must-revalidate` | up to **5 minutes** stale |
 
 Design for the third row:
 
@@ -1012,11 +1013,23 @@ Design for the third row:
 - **A `?v=<build>` stamp on your entry URLs is NOT enough** for an ES-module or import-map
   graph: the stamp busts only the files you stamp, and a module's own *relative imports* carry
   no stamp — so mid-release, a fresh entry can still import a stale dependency. If you
-  cannot hash filenames, put the build id in a **directory** (`pub/<build>/...`): relative
-  imports inside the tree keep working, and every URL in the graph changes together.
+  cannot hash filenames, put the build id in a **directory** (`pub/<build>/...`, `<build>` 8 to 40
+  hex characters, such as a git sha): relative imports inside the tree keep working, every URL in
+  the graph changes together, and the folder is cached immutable.
 
 Headers are per-object and set at upload, so re-uploading refreshes the stored policy — but the
 browser TTL you must design for is the edge's, above.
+
+`site upload` (not a preview upload) also purges the edge: it evicts every uploaded non-HTML file,
+and every file the upload removed, from the Cloudflare cache. The upload response carries the result
+as `purge {status, attempted, purged}`, plus `failed` naming each batch that did not purge; a failed
+purge never fails the upload. `@descix/cli` 4.2.0 does not print it. Two limits:
+
+- A name in the 5-minute class (`manifest.json`, `favicon.ico`, `share.json`, …) can still be served
+  stale from one Cloudflare location for up to 300 seconds after the purge. Vite build output in
+  `assets/` and `pub/<build>/` files never are: a new build changes their URLs.
+- A browser that already holds a file keeps its own copy for the file's TTL; the purge clears only
+  the edge. A name you will ever change must not be in a year-long class.
 
 ## 9. List it, and discover the rest
 

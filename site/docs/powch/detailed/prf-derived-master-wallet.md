@@ -78,11 +78,11 @@ The CeremonyProvider's `finishRegistration` invokes `powch_register_finish` on t
 - Stores wallet_address and signature on the user document
 - Creates session → `sessionInfo` with status `NOT_AUTHENTICATED`
 
-### createPasskeyBlob (DeSciX Flow)
+### createPasskeyBlobWithCachedOptions (DeSciX Flow)
 
-`PowchData.createPasskeyBlob({ signatureMessage })`:
+`PowchData.createPasskeyBlobWithCachedOptions(options, { getSignatureMessage, deferWalletRegistration })`:
 
-- Calls `SyncManager.createCredential(registrationData)`
+- Calls `SyncManager.createCredentialWithCachedOptions(options, registrationData)` with options prefetched before the tap
 - Stores `_cloudKey`, `_prfKey`, empty vault
 - No cloud vault write until email verified (see Vault Persistence below)
 

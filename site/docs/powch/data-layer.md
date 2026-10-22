@@ -39,8 +39,8 @@ flowchart TB
 ## Layering Rules
 
 1. **vaultOps** (client-core): Pure encrypt/decrypt (blob and session). No state, no network, no WebAuthn.
-2. **SyncManager** (inside PowchData): Orchestrates enclave read, create, and write. Exposes `read()`, `createCredential()`, `writeToEnclave()`. Uses vaultOps for encrypt/decrypt. Delegates biometric ceremonies to an injected CeremonyProvider. Owns vault timeout.
-3. **PowchData**: SSOT. Exposes cards, `unlock()`, `createPasskeyBlob()`, `saveCard()`, signing, resolveAddress. Hosts SyncManager. Consumers never call vaultOps or SyncManager directly.
+2. **SyncManager** (inside PowchData): Orchestrates enclave read, create, and write. Exposes `readWithOptions()`, `createCredentialWithCachedOptions()`, `writeToEnclave()`, `getPrfForExport()`, each taking ceremony options fetched before the tap, plus the `begin*Options()` fetchers. Uses vaultOps for encrypt/decrypt. Delegates biometric ceremonies to an injected CeremonyProvider. Owns vault timeout.
+3. **PowchData**: SSOT. Exposes cards, `unlockWithOptions()`, `createPasskeyBlobWithCachedOptions()`, `saveCards()` / `saveCard()`, signing, resolveAddress. Hosts SyncManager. Consumers never call vaultOps or SyncManager directly.
 4. **PowchAppProvider**: CeremonyProvider, view/event handling. Registers as CeremonyProvider on mount.
 
 ---
@@ -56,10 +56,11 @@ PowchData is a static class (no instances) that serves as the Single Source of T
 | Method / area | Purpose |
 |---------------|---------|
 | `initialize()` | Load credentialId; set empty _vault and _tier3. No decrypt. |
-| `unlock()` | Parameterless. Calls SyncManager.read(); hydrates _vault and _tier3 (or empty if blob is null). Sets credentialId, _prfKey. Emits VAULT_UNLOCKED. |
-| `createPasskeyBlob()` | Calls SyncManager.createCredential(); sets credentialId, _prfKey, empty _vault and _tier3. Emits VAULT_UNLOCKED. For new users. |
+| `beginLoginOptions()` | Fetches the sign-in options (powch_login_begin) before the tap. |
+| `unlockWithOptions(options)` | Calls SyncManager.readWithOptions(options) — navigator.credentials.get() is its first await, so call it synchronously from the tap; hydrates _vault and _tier3 (or empty if blob is null). Sets credentialId, _prfKey. Emits VAULT_UNLOCKED. |
+| `createPasskeyBlobWithCachedOptions(options, data)` | Calls SyncManager.createCredentialWithCachedOptions(options) — navigator.credentials.create() is its first await, so call it from the New-account tap with options from `beginRegistrationOptions()`; sets credentialId, _prfKey, empty _vault and _tier3. Emits VAULT_UNLOCKED. For new users. |
 | `lock()`, `reset()` | Clear _prfKey, _vault, _tier3; reset clears credentialId and Tier 3 storage. |
-| `getCards(type?)`, `saveCard(card)` | Tier 1/2 cards from _vault. saveCard re-encrypts and writes via SyncManager. |
+| `getCards(type?)`, `saveCards(cards, options)`, `saveCard(card, options)`, `removeCard(cardOrId, options)` | Tier 1/2 cards from _vault. A write re-encrypts and writes via SyncManager in ONE passkey ceremony; `options` come from `beginWriteOptions()`, fetched before the tap. |
 | `getTier3Cards(type?)`, `saveTier3Card(card)` | Tier 3 cards and consent (Tier3Store). |
 | `resolveAddress(address)` | Returns `{ walletId: cardId, keyIndex }` or null. |
 | `signTransaction(cardId, txData, makeRequest)` | Sign using cached _prfKey when unlocked. Same pattern: `signMessage`, `signTypedData`. |
@@ -91,7 +92,7 @@ PowchData emits events that PowchAppProvider consumes via `appEvent` and `viewEv
 
 ## SyncManager
 
-The SyncManager is a class instantiated as `PowchData.sync`. It has exactly three operations: **read()** (WebAuthn get + PRF; fetch vault from cloud, decrypt with CloudKey; returns `{ blob | null, prfKey, credentialId }`), **createCredential()** (WebAuthn create for new passkeys; derives CloudKey from PRF + credentialId; returns `{ prfKey, credentialId, cloudKey, walletAddress }`), and **writeToEnclave(vault, credentialId)** (WebAuthn get + PRF; encrypt vault with CloudKey, putVault to cloud). PowchData calls these; flows never call SyncManager directly. For full ceremony and flow detail, see [architecture.md](./architecture.md).
+The SyncManager is a class instantiated as `PowchData.sync`. Its ceremonies take options fetched before the tap and run the WebAuthn call as their first await: **readWithOptions(options)** (WebAuthn get + PRF; fetch vault from cloud, decrypt with CloudKey; returns `{ blob | null, prfKey, credentialId }`), **createCredentialWithCachedOptions(options, data)** (WebAuthn create for new passkeys; derives CloudKey from PRF + credentialId; returns `{ prfKey, credentialId, cloudKey, walletAddress }`), **writeToEnclave(vault, credentialId, options)** (WebAuthn get + PRF; encrypt vault with CloudKey, putVault to cloud) and **getPrfForExport(options)** (paper backup). PowchData calls these; flows never call SyncManager directly. For full ceremony and flow detail, see [architecture.md](./architecture.md).
 
 ### CeremonyProvider Injection
 
@@ -127,9 +128,9 @@ PowchData.sync.startVaultTimeout();
 PowchData.sync.clearVaultTimeout();
 ```
 
-When the timeout fires, it emits `PowchAppEvent.VAULT_LOCKED`.
+When the timeout fires, it calls `PowchData.lock()`, which emits `PowchAppEvent.VAULT_LOCKED` once. The shell session is not touched.
 
-SyncManager is used by PowchData for all enclave I/O: unlock uses `read()`, new users use `createCredential()`, and `saveCard()` uses `writeToEnclave()`. See [architecture.md](./architecture.md) and [data-security-architecture.md](./data-security-architecture.md) §5.
+SyncManager is used by PowchData for all enclave I/O: unlock uses `readWithOptions()`, new users use `createCredentialWithCachedOptions()`, card writes use `writeToEnclave()` and the paper backup uses `getPrfForExport()`, each with options fetched before the tap. See [architecture.md](./architecture.md) and [data-security-architecture.md](./data-security-architecture.md) §5.
 
 **completeAuth(result)** (PowchData): Sets credentialId if provided, updates appState, clears flowData and error.
 

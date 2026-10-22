@@ -29,13 +29,14 @@ The SDK sends these types to the Powch App iframe. Payload is enriched with `bra
 
 ### App → Host (postMessage)
 
-| Type | Payload | Description |
-|------|---------|-------------|
-| `POWCH_READY` | — | Iframe loaded and listener attached |
-| `POWCH_UI_CLOSE` | — | Request Host to close sidebar |
-| `POWCH_TOGGLE_UI` | — | Request Host to toggle sidebar |
-| `POWCH_STATE_UPDATE` | `{ isAuthenticated?, displayAddress? }` | Mirror auth/address for Host |
-| `POWCH_RESPONSE` | `{ requestId, success, payload? \| error? }` | Reply to a Host request. When `success: false`, `error` may be `'Powch UI not visible'` (visibility gate). |
+Every post goes through one host-channel module. A reply goes to the window that sent the request, with that request's browser-stamped `event.origin` as `targetOrigin`; a request with an opaque (`'null'`) or empty origin is refused. Only the two payload-free lifecycle signals are broadcast to the parent with `'*'`.
+
+| Type | Payload | Sent to | Description |
+|------|---------|---------|-------------|
+| `POWCH_READY` | — | parent, `'*'` | Iframe loaded and listener attached |
+| `POWCH_UI_CLOSE` | — | parent, `'*'` | Request Host to close sidebar |
+| `POWCH_STATE_UPDATE` | `{ isAuthenticated, displayAddress?, sessionInfo? }` | the requesting window, its origin | After a sign-in that a host request started; `displayAddress` is the consented `walletAddress`. A sign-in no host asked for (inside the Powch UI, top-level Powch) posts nothing. |
+| `POWCH_RESPONSE` | `{ requestId, success, payload? \| error? }` | the requesting window, its origin | Reply to a Host request. When `success: false`, `error` may be `'Powch UI not visible'` (visibility gate). |
 
 ### Internal (dispatch from App UI)
 
@@ -104,7 +105,6 @@ From `PowchData` (client-core), re-exported by PowchAppProvider:
 | `IDLE` | `'flow_idle'` | No overlay; tab content visible |
 | `AUTH_MAIN` | `'flow_auth_main'` | PowchMainView (Returning / New User) |
 | `AUTH_CREATE` | `'flow_auth_create'` | CollectEmailView (auth flow COLLECT_EMAIL state) |
-| `AUTH_LOGIN` | `'flow_auth_login'` | LoginView (returning user) |
 | `AUTH_VERIFY` | `'flow_auth_verify'` | VerifyEmailView |
 | `AUTH_CONSENT` | `'flow_auth_consent'` | ConsentView (share with origin?) |
 | `AUTH_CANCEL_RETURNING` | `'flow_auth_cancel_returning'` | ReturningUserCancelView |
@@ -158,7 +158,7 @@ All view transitions route through a centralized **viewRouter(target)** and a si
 ```mermaid
 stateDiagram-v2
   [*] --> LOCKED: initial
-  LOCKED --> VAULT_UNLOCKED: unlock / createPasskeyBlob
+  LOCKED --> VAULT_UNLOCKED: unlockWithOptions / createPasskeyBlobWithCachedOptions (each on a tap)
   VAULT_UNLOCKED --> LOCKED: lockVault / timeout / session expiry
 
   state flow {

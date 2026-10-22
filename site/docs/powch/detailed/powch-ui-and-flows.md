@@ -22,11 +22,11 @@ Flows are implemented by **headless flow controllers**. When a flow is active, P
 | Sign | POWCH_SIGN, POWCH_SIGN_TX, POWCH_SIGN_MESSAGE, POWCH_SIGN_TYPED_DATA | SignFlowController | PREPARE_DATA → REQUIRE_WALLET \| SELECT_WALLET \| SHOW_CONFIRM_UI → EXECUTE_SIGN (vault unlocked by FlowRunner pre-flight) | PowchTransactionFlow (select/confirm), nested WalletConnectFlowController |
 | Payment | POWCH_RECEIVE, POWCH_SEND | PaymentFlowController | PREPARE_PAYMENT → SHOW_RECEIVE_UI / SHOW_SEND_UI → DISPLAY_QR or TRIGGER_SIGN → BROADCAST | WalletManagerView, HomeView (QR placeholder), WalletConnectView |
 | Wallet Connect | POWCH_CONNECT_WALLET (or sub-flow from Sign) | WalletConnectFlowController | SHOW_UI ↔ HANDLE_EXISTING_SELECTION / HANDLE_IMPORT / HANDLE_GENERATE → PROCESS_CONFIRMATION (vault unlocked by FlowRunner pre-flight; no ACQUIRE_PRF) | WalletConnectView |
-| Import | POWCH_IMPORT_KEY | ImportFlowController | CHECK_DATA → SHOW_IMPORT_UI \| EXECUTE_BIOMETRIC_SAVE; SHOW_IMPORT_UI (SUBMIT_PK) → EXECUTE_BIOMETRIC_SAVE | WalletManagerView (mode import) |
+| Import | POWCH_IMPORT_KEY | ImportFlowController | CHECK_DATA → SHOW_IMPORT_UI \| VAULT_SAVE_PROMPT; SHOW_IMPORT_UI (SUBMIT_PK / SUBMIT_MNEMONIC) → VAULT_SAVE_PROMPT --tap SAVE--> VAULT_SAVE_ON_TAP | ImportWalletView, VaultSavePromptView |
 
 ### Auth
 
-Trigger: **POWCH_LOGIN** or **POWCH_AUTH** (payload: origin, require, purpose, brand, forceLogin). FlowRunner starts **AuthFlowController**. States: CHECK_SESSION, PROMPT_TYPE (Returning / New User), TRY_UNLOCK (PowchData.unlock()), UNLOCK_FAILED (UnlockFailedView), CREATE_PASSKEY_BLOB (PowchData.createPasskeyBlob()), CHECK_EMAIL_CARD, COLLECT_EMAIL (CollectEmailView), CONSENT_GATE, SHOW_CONSENT_UI, FINISH. See [flow-controllers.md](../flow-controllers.md#authflowcontroller) and [architecture.md](../architecture.md).
+Trigger: **POWCH_LOGIN** or **POWCH_AUTH** (payload: origin, require, purpose, brand, forceLogin). FlowRunner starts **AuthFlowController**. States: CHECK_SESSION, PROMPT_TYPE (Returning / New User), TRY_UNLOCK (PowchData.unlockWithOptions(), entered only from a tap), UNLOCK_FAILED (UnlockFailedView), CREATE_PASSKEY_BLOB (PowchData.createPasskeyBlobWithCachedOptions(), entered only from a tap), CHECK_EMAIL_CARD, COLLECT_EMAIL (CollectEmailView), CONSENT_GATE, SHOW_CONSENT_UI, FINISH. See [flow-controllers.md](../flow-controllers.md#authflowcontroller) and [architecture.md](../architecture.md).
 
 ### Sign
 
@@ -42,7 +42,7 @@ Trigger: **POWCH_CONNECT_WALLET** (payload: signatureMessage, startMode, instruc
 
 ### Import
 
-Trigger: **POWCH_IMPORT_KEY** (payload: privateKey, label). Machine starts **ImportFlowController**. Flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(card)**; no addKeyToSession or saveSession. See [data-security-architecture.md](../data-security-architecture.md) and [powch-flow-controller-architecture.md](powch-flow-controller-architecture.md) Section 5.1.
+Trigger: **POWCH_IMPORT_KEY** (payload: privateKey, label). Machine starts **ImportFlowController**. Flow creates CRYPTO_WALLET cards and persists them in one **PowchData.saveCards** write from the vault-save tap step; no addKeyToSession or saveSession. See [data-security-architecture.md](../data-security-architecture.md) and [powch-flow-controller-architecture.md](powch-flow-controller-architecture.md) Section 5.1.
 
 ### Legacy flowState path
 
@@ -54,12 +54,7 @@ When no flow controller is active, the protocol machine still sets **flowState**
 
 ### Inter-page / global
 
-Events that change global state (blob, appState, flowState) go through the protocol machine. Persisted data:
-
-- **Identity cache** and **site consent**: PowchData (powch_identity_cache, powch_sites, powch_session_&lt;origin&gt;).
-- **Blob / credential**: PowchData and WebAuthn largeBlob (writes via machine or helpers, e.g. setBlobInternal after LOGIN_SUCCESS or completeRequestInternal).
-
-Writes go through the same machine or helpers (e.g. setIdentityCache after LOGIN_SUCCESS / completeRequestInternal).
+Events that change global state (blob, appState, flowState) go through the protocol machine. What is persisted, and where, is listed once in the persistence map of [data-security-architecture.md](../data-security-architecture.md) §6.
 
 ### Intra-flow
 
