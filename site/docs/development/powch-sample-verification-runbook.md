@@ -125,25 +125,49 @@ rpID: `powch.dev.descix.net`. A DEV passkey is not a PROD passkey.
 
 ### C. Fully local
 
-This mode is BROKEN on 2026-10-22. Both site dev servers throw at Vite config load on retired
-workspace keys, until DeSciXPowch#21 and DeSciXCloud#83 merge. Those merges are item 1 of the
-local verification program, eabadir/Unkamon#83. Once they merge, the commands are those of the
-platform local dev mode runbook (`development/local-platform-dev-mode-runbook.md`, internal) §1: Cloud `:4000`, Powch
-microservice `:3003`, shell `:5174`, Powch site `:5175`, and the gateway started as
-`descix --api-url https://localhost:4000 serve`. The shell is then `https://localhost:5599/` (an app)
-and `https://localhost:5174/` (the store), Powch is `https://localhost:5175/`, and the rpID is
-`localhost`. `env.powchUrl` (`https://localhost:5175`) takes effect only in this mode. The dev
-certificates cover `localhost`, `127.0.0.1` and `::1` only, so there is no iPhone column: a phone
-uses mode D.
+The commands are those of the platform local dev mode runbook
+(`development/local-platform-dev-mode-runbook.md`, internal) §1:
+
+- Cloud on `:4000`;
+- the Powch microservice on `:3003`;
+- the shell on `:5174`;
+- the Powch site on `:5175`;
+- the gateway, started as `descix --api-url https://localhost:4000 serve --app daita-splitviewdemo`.
+
+The mode boots since DeSciXPowch#21 and DeSciXCloud#83 merged on 2026-10-22. Measured that day with
+`--app daita-splitviewdemo`, in Playwright Chromium and WebKit, `https://localhost:5599/` is the
+local shell with:
+
+- the Powch sidebar at depth 1;
+- the app at `https://localhost:5599/p/daita-splitviewdemo/` at depth 1.
+
+The sidebar's origin, and so the rpID, is `env.powchUrl`:
+
+- `https://localhost:5175` gives rpID `localhost`;
+- `https://powch-local.descix.net`, the value set for mode D, gives rpID `powch-local.descix.net`
+  on the desktop too. That value was measured in place.
+
+The tester is not in the gateway's `env.gateway.appRepos`, so on this mode it has not yet been
+measured. The dev certificates cover `localhost`, `127.0.0.1` and `::1` only, so there is no iPhone
+column: a phone uses mode D.
 
 ### D. Tunnel (a phone against C)
 
-This mode is pending eabadir/Unkamon#83 (the Cloudflare rails formerly on #75, folded in). The
-intended hosts are `https://dev-local.descix.net/`, which reaches the gateway `:5599`, and
-`https://powch-local.descix.net/`, which reaches the local Powch `:5175`. The rpID would be
-`powch-local.descix.net`. Measured 2026-10-22: `https://dev-local.descix.net/` answered 502, and
-`https://powch-local.descix.net/` answered 200 with a page that is not the local Powch. The rails are
-not in place.
+`https://dev-local.descix.net/` reaches the gateway `:5599`, and `https://powch-local.descix.net/`
+reaches the local Powch `:5175`, through the Cloudflare tunnel (eabadir/Unkamon#83). The rpID is
+`powch-local.descix.net`. Measured 2026-10-22 with the stack up: both hosts serve the local
+documents.
+
+At `https://dev-local.descix.net/` the shell and the Powch sidebar (`https://powch-local.descix.net/`)
+load, but the app frame does not. The gateway's binding answers
+`"appUrl":"https://localhost:5599/p/daita-splitviewdemo"`, an absolute `localhost` URL:
+
+- Chromium shows `chrome-error://chromewebdata/` in the frame;
+- WebKit on the Mac loads it cross-origin and the app reports `embedded-no-bridge`;
+- a phone has no `localhost`.
+
+Sign-in and New account run in the Powch sidebar and do not need the app frame. The tester's own
+screens on this mode wait for the gateway to answer the binding on the request's origin.
 
 ## 3. The four steps every cell runs
 
@@ -213,17 +237,19 @@ by a person only.
 | Share click | not yet measured. B-serve gives the passkey tap (`localhost` is not first-party); B-store needs a second DEV host, and DEV app hosts have no edge certificate. No row yet | same | same |
 | Sign out | expected PASS (§3). Not yet measured; #84 second DEV run | same | same |
 
-### C. Fully local: `https://localhost:5599/`, store `https://localhost:5174/`, Powch `https://localhost:5175/`
+### C. Fully local: `https://localhost:5599/`, store `https://localhost:5174/`, Powch at `env.powchUrl`
 
 | Step | Desktop Chromium | Desktop Safari | iPhone |
 |---|---|---|---|
-| All four | not yet measured. The mode does not boot until DeSciXPowch#21 and DeSciXCloud#83 merge; row eabadir/Unkamon#83 (with its local Playwright login spec) | not yet measured; #83 | no cell: the certificates cover `localhost` only; use D |
+| All four | not yet measured. The stack boots and the sidebar loads (measured, §2 C); the sign-in cells belong to the local Playwright login spec of eabadir/Unkamon#83 | not yet measured; #83 | no cell: the certificates cover `localhost` only; use D |
 
 ### D. Tunnel: `https://dev-local.descix.net/`, Powch `https://powch-local.descix.net/`
 
 | Step | Desktop Chromium | Desktop Safari | iPhone |
 |---|---|---|---|
-| All four | not yet measured; #83 | not yet measured; #83 | not yet measured; #83 (the CEO's phone tap on the local stack) |
+| Returning sign-in, New account (sidebar only) | not yet measured; #83 | not yet measured; #83 | not yet measured; #83 (the CEO's phone tap on the local stack) |
+| Share click, Sign out | not yet measured; #83 | not yet measured; #83 | not yet measured; #83 |
+| Any tester screen | FAILS today, measured: the app frame is `https://localhost:5599/p/…` (§2 D) | FAILS today, measured: `embedded-no-bridge` | FAILS today: a phone has no `localhost` |
 
 ## 5. Negative controls
 

@@ -245,6 +245,19 @@ sequenceDiagram
     Note over PWA: LOGIN_SUCCESS
 ```
 
+## WebAuthn by Browser Engine
+
+Every `navigator.credentials` call (`create()` for a new account, `get()` for sign-in) runs in Powch's own document at `powch.<env>.descix.net`, never in a host shell or an app. That document is either the top window or the cross-origin sidebar frame of a host shell (depth 1). What the browser allows there depends on the engine:
+
+| Engine | `get()` in the sidebar frame | `create()` in the sidebar frame | Powch as the top window |
+|---|---|---|---|
+| Chromium (Chrome, Edge, Android) | allowed: the frame is granted `publickey-credentials-get` | allowed: the frame is granted `publickey-credentials-create`, with a user activation | allowed |
+| WebKit (Safari, and every browser on iOS and iPadOS) | allowed since WebKit 248192@main | **refused** | allowed |
+
+- **WebKit refuses `create()` in any document that is not same-origin with all its ancestors**, before any permissions policy is read: WebCore `AuthenticatorCoordinator.cpp:171-172` rejects with `NotAllowedError` "The origin of the document is not the same as its ancestors." WebKit's permissions-policy parser has no `publickey-credentials-create` token, so no `allow` attribute on the host's iframe can grant it.
+- **Consequence:** on iOS and iPadOS a new account can be created only when Powch is the top window (a tab or a popup at `powch.<env>.descix.net`). A host shell cannot create the passkey for Powch, because the rpID is the Powch host. Sign-in and every other Powch flow work inside the sidebar frame on both engines.
+- **Measured** 2026-10-22 on an iPhone: top-level `powch.dev.descix.net` and `powch.descix.net` create the passkey.
+
 ## Client-Specific Authentication
 
 ### PWA (Web Users)
