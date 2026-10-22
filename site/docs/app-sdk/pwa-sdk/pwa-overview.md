@@ -36,7 +36,7 @@ function SignInButton() {
 }
 ```
 
-**Session update:** When Powch completes login, the bridge resolves with `{ sessionInfo, auth_status }`. The caller invokes `window.DeSciX.loginWithSessionToken(result)` to update session state. This is the standard API for embedded apps (CodeSite, etc.) to sync session after Powch returns sessionInfo over the postMessage bridge.
+**Session update:** When Powch completes login, the bridge resolves with `{ sessionInfo, auth_status }`. The caller invokes `window.DeSciX.loginWithSessionToken(result)` to update the shell's session state; `PowchBridgeClient` makes the same call itself whenever a Powch message carries a session. Only the shell talks to Powch, over `postMessage` to Powch's own origin. An app in the shell's code-site frame is same-origin with the shell and uses the shell's `window.DeSciX` directly; it exchanges no messages with Powch.
 
 **Components:** `PowchSideBarWidget` (app-sdk) hosts the iframe; `SignInButton` and `TopNavBar` use `usePowchBridge()` for login/wallet actions.
 
