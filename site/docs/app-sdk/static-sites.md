@@ -17,46 +17,43 @@ The key difference: `site.port` requires a running dev server process, `site.sta
 
 ## Configuring workspace.json
 
-Add your app to `env.products[]` in `.descix/workspace.json` with a `site.static` field:
+Each app repo's own `.descix/workspace.json` holds one app, `env.app`; the repo root is the workspace root. Set the static site with `descix app set-site`:
+
+```bash
+descix app set-site -a egpt --static .
+```
+
+It writes `site.static` into `env.app`:
 
 ```json
 {
-  "appId": "egpt",
-  "localPath": "EGPT",
-  "site": { "static": "." }
+  "env": {
+    "app": {
+      "appId": "egpt",
+      "communityId": "egpt",
+      "kbId": "General",
+      "site": { "static": "." }
+    }
+  }
 }
 ```
 
 ### The `site.static` Value
 
-The value is a **path relative to `localPath`**:
+The value is a **directory relative to the repo root**:
 
 | Value | Resolves To | Use When |
 |-------|------------|----------|
-| `"."` | `{workspaceRoot}/{localPath}/` | Your `index.html` is at the root of the project |
-| `"site"` | `{workspaceRoot}/{localPath}/site/` | Standard app folder structure with `site/` directory |
-| `"dist"` | `{workspaceRoot}/{localPath}/dist/` | Build output from a bundler |
+| `"."` | `{repoRoot}/` | Your `index.html` is at the root of the repo |
+| `"site"` | `{repoRoot}/site/` | Standard app folder structure with `site/` directory |
+| `"dist"` | `{repoRoot}/dist/` | Build output from a bundler |
+| `"../scratch"` | a sibling directory of the repo | The built site lives outside the repo |
 
-### Full Example: EGPT as a Static Site
+A blank, absolute, `~` or URL value is refused, both by `descix app set-site` and by the gateway when it reads `workspace.json`.
 
-The EGPT project has its `index.html` at the project root. In workspace.json:
+Setting `--static` clears `site.port`, and setting `--port` clears `site.static`. Passing both flags in one call keeps both; the gateway then serves the dev server at `site.port`, and the `descix serve` banner says so under "Site modes".
 
-```json
-{
-  "env": {
-    "products": [
-      {
-        "appId": "egpt",
-        "localPath": "EGPT",
-        "kbId": "General",
-        "site": { "static": "." }
-      }
-    ]
-  }
-}
-```
-
-After running `descix serve`, the site is available at:
+After running `descix serve` from the repo, the site is available at:
 ```
 https://localhost:<gateway-port>/p/egpt/
 ```
@@ -78,6 +75,10 @@ The gateway auto-discovers static sites from workspace.json. You'll see them in 
   API:       <api origin>     [<source>]
   Shell:     <shell origin>   [<source>]
   Port:      <port>           [<source>]
+  App:       <app_id>   [<source>]   mode: standalone
+  Open:      https://localhost:<port>/   → App Shell; reads /__descix/app-binding.json and boots <app_id> standalone
+  App route: https://localhost:<port>/p/<app_id>   → this app's route on the gateway (the URL the shell loads it from)
+  First view: <view>   [share.json: <source>]
 
   Proxy routes:
     /apifront                                → <api origin>
@@ -85,7 +86,7 @@ The gateway auto-discovers static sites from workspace.json. You'll see them in 
     ...
 
   Static sites:
-    /p/<app_id>                              → <workspace root>/<localPath>
+    /p/<app_id>                              → <absolute site.static directory>
 ```
 
 Every value in that banner is printed with the source it came from. Read the banner rather than
@@ -93,7 +94,7 @@ assuming a port or an origin.
 
 ### Live Reload
 
-The gateway watches `workspace.json` for changes. If you add or remove a static site product, the gateway restarts automatically — no manual restart needed.
+The gateway watches `.descix/workspace.json` (in a gateway workspace, each listed repo's own file too) for changes. If you set, change or clear `site.static`, the gateway restarts automatically — no manual restart needed. Edits to the site's files need no restart: they are read from disk on each request.
 
 ### How Static Serving Works
 
@@ -134,18 +135,17 @@ The upload command:
 3. Confirms the deploy: the server writes the site manifest, deletes every site file the build does not contain (the `_preview/` site is kept on a production deploy), and updates the app's `ip_site_gcs_path_url`
 4. Prints the removed files; a failed upload stops before the confirm, so nothing is removed
 
-In production, the site is served at the app's public URL (e.g., `egpt.descix.net` or via the platform's `/p/egpt/` route through the load balancer).
+In production, `{appId}.descix.net/` serves the App Shell, which frames the app's site at `/prod/{appId}/site/index.html` on the same host. The Cloudflare Worker `descix-edge-router` serves the site files from Google Cloud Storage (`descix-assets-public/prod/{appId}/site/`). `/p/{appId}/` exists only on the local gateway.
 
-## End-to-End: From workspace.json to the Launch Button
+## End-to-End: From workspace.json to the Framed Site
 
-The full chain for how a static site reaches the user in the PWA:
+The full chain for how a static site reaches the user under `descix serve`:
 
-1. **workspace.json** — Product has `site.static` configured
-2. **workspaceProducts.js** — Maps `site.static` products to `https://localhost:{gatewayPort}/p/{appId}`
-3. **Gateway define** — Injects the URL into `__WORKSPACE_PRODUCTS__` at build time
-4. **AppData.getProductUrl()** — Returns the gateway URL for the app
-5. **AppStoreWidget** — Shows "Launch Code Site" button
-6. **CodeSiteWidget** — Loads the static site in an iframe
+1. **workspace.json** — `env.app.site.static` names the site directory
+2. **Gateway static route** — the gateway serves that directory at `/p/{appId}/`
+3. **App binding** — the gateway answers `GET /__descix/app-binding.json` at its root with `appUrl` = `https://localhost:<gateway-port>/p/{appId}`
+4. **App Shell** — opened at the gateway root, the shell reads the binding and boots standalone on the app
+5. **CodeSiteWidget** — loads `appUrl` in a same-origin iframe
 
 ## Comparison with site.port
 
@@ -162,7 +162,7 @@ The full chain for how a static site reaches the user in the PWA:
 ## Troubleshooting
 
 ### Site returns 404
-- Ensure `localPath` in workspace.json points to the correct directory
+- Ensure `site.static` in `.descix/workspace.json` names the directory that holds `index.html`, relative to the repo root
 - Check that `index.html` exists at the resolved static root
 - Verify the gateway started with your static site listed in the "Static sites" table
 
