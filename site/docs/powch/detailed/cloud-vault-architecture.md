@@ -14,7 +14,7 @@ This document specifies the **Cloud Vault + Deterministic CloudKey** model. Clou
 
 - **Deterministic CloudKey:** CloudKey is derived from PRF + credentialId via HKDF; no Key Object in largeBlob.
 - **Zero-Knowledge:** Server stores only ciphertext; decryption keys remain client- and hardware-bound.
-- **Same consumer API:** PowchData remains the single entry point; flows continue to call `unlock()`, `createPasskeyBlob()`, `saveCard()` only.
+- **Same consumer API:** PowchData remains the single entry point; flows call `unlockWithOptions()`, `createPasskeyBlobWithCachedOptions()`, `saveCards()` / `saveCard()` only, each with options fetched before the tap.
 - **Onboarding order:** First-time user: (a) passkey created, (b) CloudKey derived from PRF + credentialId, (c) email verified (DeSciX master ID), (d) vault encrypted and stored in cloud, (e) session token in localStorage.
 - **Downstream:** Enable client-side paper backup (export decrypted sensitive data) and server-side deauthorization (revoke vault access).
 
@@ -78,21 +78,21 @@ Target order: **Passkey create → CloudKey derived → Email verified → Uploa
 - **d) Session:** `finishLogin` returns session token; store in localStorage.
 
 
-**As-built:** No `createPasskeyAndBootstrapCloud`. Flow calls `createPasskeyBlob()`; initial vault upload happens on first `saveCard()`.
+**As-built:** No `createPasskeyAndBootstrapCloud`. Flow calls `createPasskeyBlobWithCachedOptions()` on the New-account tap; initial vault upload happens on first `saveCard()`.
 ### 3.2 Login (Startup)
 
-- **Unlock ceremony:** Unchanged from flow perspective: flow calls `PowchData.unlock()`.
-- **SyncManager.read()** behavior:
+- **Unlock ceremony:** the flow fetches the sign-in options when a sign-in screen is entered (`PowchData.beginLoginOptions()`) and calls `PowchData.unlockWithOptions(options)` on the tap.
+- **SyncManager.readWithOptions(options)** behavior (the ceremony is its first await):
   1. WebAuthn get with PRF only (no largeBlob read).
   2. Derive CloudKey from `prfOutput` and `credentialId`.
   3. Fetch cloud vault via `powch_vault_get`, decrypt with CloudKey.
-  4. Finish login with server (session token). Return `{ blob, prfKey, credentialId }`. PowchData.unlock() hydrates `_vault` and Tier3 from blob.
+  4. Finish login with server (session token). Return `{ blob, prfKey, credentialId }`. PowchData.unlockWithOptions() hydrates `_vault` and Tier3 from blob.
 
-Flows and views do not change; only the implementation behind `SyncManager.read()` and the backend do.
+Flows and views do not change; only the implementation behind `SyncManager.readWithOptions()` and the backend do.
 
 ### 3.3 Save (Write Path)
 
-- **saveCard:** Flow calls `PowchData.saveCard(card)` as today.
+- **saveCard:** Flow calls `PowchData.saveCards(cards, options)` from the vault-save tap step (vaultSaveStep.js).
 - **SyncManager.writeToEnclave(vault, credentialId)** behavior:
   1. WebAuthn get with PRF only. Derive CloudKey from prfOutput and credentialId.
   2. Encrypt vault with CloudKey for cloud.
@@ -107,9 +107,9 @@ Tier 1 fields are still encrypted with PRF-derived key inside the vault before t
 ### 4.1 Paper Backup (Cold Storage)
 
 - **Intent:** User can export CloudKey (derived from PRF) as a BIP-39 mnemonic for cold storage. If all passkeys are lost, the mnemonic restores the master wallet.
-- **Implementation:** `PowchData.exportPaperBackup()` triggers a biometric ceremony, derives CloudKey from PRF + credentialId, converts to 24-word mnemonic via `cloudKeyToMnemonic()`.
+- **Implementation:** `PowchData.exportPaperBackup(options)` triggers a biometric ceremony (its first await, on the tap), derives CloudKey from PRF + credentialId, converts to 24-word mnemonic via `cloudKeyToMnemonic()`.
 - **Placement:** WalletManagerView "View Recovery Phrase" button. Confirmation checkbox before reveal.
-- **Security:** Extra biometric step inside `exportPaperBackup()` (via `getPrfForExport()`).
+- **Security:** Extra biometric step inside `exportPaperBackup()` (via `getPrfForExport(options)`).
 
 ### 4.2 Deauthorization (Stolen Device)
 
@@ -126,7 +126,7 @@ Tier 1 fields are still encrypted with PRF-derived key inside the vault before t
 | File | Change | Encapsulation |
 |------|--------|----------------|
 | **vaultOps.js** | `generateCloudKey()`, `encryptVaultForCloud(vaultBlob, cloudKey)`, `decryptVaultFromCloud(encryptedBlob, cloudKey)`, `serializeKeyObject(keyObject)`, `parseKeyObject(bytes)` for Key Object. Tier 1 helpers (`encryptPrivateKey`, `decryptPrivateKey`) unchanged. Legacy `encryptBlobForStorage`/`decryptBlobFromStorage` removed. | Pure crypto and serialization only; no network, no WebAuthn. |
-| **PowchData.js** | **SyncManager:** Implement Key Object + cloud path: In `read()`, after largeBlob read, detect format (Key Object vs legacy). If Key Object: call CeremonyProvider to fetch vault (e.g. `fetchVault()`), decrypt with CloudKey, return blob. If legacy: decrypt with PRF as today. In `writeToEnclave()`, encrypt vault with CloudKey (from in-memory or from a read), call CeremonyProvider to put vault (e.g. `putVault(encrypted)`), optionally write Key Object to largeBlob if needed. Add **SyncManager** method `bootstrapCloudVault()` or equivalent: generate CloudKey, build Key Object, write to largeBlob, create empty vault, encrypt for cloud, call provider.putVault. **PowchData** may expose `createPasskeyAndBootstrapCloud()` that calls createCredential() then sync.bootstrapCloudVault() so the flow has a single “new user” entry point; internal state (e.g. CloudKey) stays inside SyncManager or a closure used only for that session until written to largeBlob. | SyncManager remains the only place that knows about Key Object and cloud vault; PowchData public API stays unlock/createPasskeyBlob/saveCard (+ optional bootstrap method). Flows still never touch SyncManager. |
+| **PowchData.js** | **SyncManager:** Implement Key Object + cloud path: In `readWithOptions()`, after largeBlob read, detect format (Key Object vs legacy). If Key Object: call CeremonyProvider to fetch vault (e.g. `fetchVault()`), decrypt with CloudKey, return blob. If legacy: decrypt with PRF as today. In `writeToEnclave()`, encrypt vault with CloudKey (from in-memory or from a read), call CeremonyProvider to put vault (e.g. `putVault(encrypted)`), optionally write Key Object to largeBlob if needed. Add **SyncManager** method `bootstrapCloudVault()` or equivalent: generate CloudKey, build Key Object, write to largeBlob, create empty vault, encrypt for cloud, call provider.putVault. **PowchData** may expose `createPasskeyAndBootstrapCloud()` that calls createCredential() then sync.bootstrapCloudVault() so the flow has a single “new user” entry point; internal state (e.g. CloudKey) stays inside SyncManager or a closure used only for that session until written to largeBlob. | SyncManager remains the only place that knows about Key Object and cloud vault; PowchData public API stays unlock/createPasskeyBlob/saveCard (+ optional bootstrap method). Flows still never touch SyncManager. |
 
 ### 5.2 CeremonyProvider and Network (React / PowchAppProvider)
 
@@ -148,23 +148,23 @@ Tier 1 fields are still encrypted with PRF-derived key inside the vault before t
 |------|--------|----------------|
 | **flows/AuthFlowController.js** | **Onboarding order (new user, T-FLOW-PASSKEY-FIRST 2026-04-22):** PROMPT_TYPE(NEW) → AIRDROP_ONBOARDING_CHOICE → CREATE_PASSKEY_BLOB → COLLECT_EMAIL_TOS_PK (gate PASS) → CONSENT_GATE → FINISH. The legacy pre-passkey VERIFY_AIRDROP_WALLET + standalone COLLECT_EMAIL states were removed; the token gate runs server-side inside descix_accept_tos. Flow only calls PowchData; no SyncManager or vaultOps. | Business logic stays in flow state machine; views remain presentational. |
 | **views/CollectEmailView.jsx** | No change to encapsulation. If verification step is required before passkey create, the flow drives when to show CollectEmailView (e.g. before CREATE_PASSKEY_BLOB for new users). | View only emits SUCCESS/FAIL with payload; flow decides next state. |
-| **views/UnlockFailedView.jsx** | No change. | — |
-| **flows/FlowRunner.js** | No change. Pre-flight unlock remains; no awareness of cloud vs local. | — |
+| **views/UnlockFailedView.jsx** | Shows the browser's own error (describeWebAuthnError); Try again is disabled until fresh sign-in options load. | — |
+| **flows/FlowRunner.js** | Pre-flight sign-in tap step (UnlockFlowController); no awareness of cloud vs local. | — |
 | **flows/BaseFlowController.js** | No change. | — |
 | **flows/WalletConnectFlowController.js**, **SignFlowController.js** | No change. They rely on vault being unlocked; how it was filled is opaque. | — |
 
 ### 5.5 PowchData Public API Summary (After Changes)
 
 - **initialize()** — unchanged.
-- **unlock()** — unchanged signature; implementation uses SyncManager.read() which now may do cloud fetch + CloudKey decrypt.
-- **createPasskeyBlob()** — As-built entry point for new user registration. Called by AuthFlowController in CREATE_PASSKEY_BLOB state.
+- **unlockWithOptions(options)** — uses SyncManager.readWithOptions(options), which may do cloud fetch + CloudKey decrypt.
+- **createPasskeyBlobWithCachedOptions(options, data)** — As-built entry point for new user registration (options prefetched on screen entry). Called by AuthFlowController in CREATE_PASSKEY_BLOB state.
 - **createPasskeyAndBootstrapCloud()** — planned Phase 2. Would combine credential creation with initial vault upload. Implementation delegates to SyncManager.
-- **saveCard(card)** — unchanged; implementation uses SyncManager.writeToEnclave() which now encrypts with CloudKey and puts to cloud.
+- **saveCards(cards, options)** — uses SyncManager.writeToEnclave(vault, credentialId, options), which encrypts with CloudKey and puts to cloud.
 - **lock()**, **reset()** — unchanged. Clear in-memory CloudKey if ever stored in PowchData (prefer not to; keep CloudKey only in SyncManager or inside read/write paths).
 
 ### 5.6 Key Object Only (No Legacy)
 
-- **SyncManager.read():** If passkeyBlob parses as Key Object, use cloud path (fetchVault, decrypt with CloudKey). Otherwise treat as null/empty vault (new user). No legacy full-blob support.
+- **SyncManager.readWithOptions():** If passkeyBlob parses as Key Object, use cloud path (fetchVault, decrypt with CloudKey). Otherwise treat as null/empty vault (new user). No legacy full-blob support.
 - **SyncManager.writeToEnclave():** Requires Key Object; throws if missing. Use createPasskeyAndBootstrapCloud for new users.
 
 ---
@@ -182,10 +182,11 @@ sequenceDiagram
   participant CeremonyProvider
   participant Cloud
 
-  User->>AuthFlow: NEW
-  AuthFlow->>PowchData: createPasskeyBlob()
-  PowchData->>SyncManager: createCredential()
-  SyncManager->>CeremonyProvider: beginRegistration, createCredential, finishRegistration
+  AuthFlow->>CeremonyProvider: beginRegistration (on PROMPT_TYPE entry, before the tap)
+  User->>AuthFlow: NEW (tap)
+  AuthFlow->>PowchData: createPasskeyBlobWithCachedOptions(options)
+  PowchData->>SyncManager: createCredentialWithCachedOptions(options)
+  SyncManager->>CeremonyProvider: createCredential (first await), finishRegistration
   CeremonyProvider-->>SyncManager: prfKey, credentialId
   SyncManager-->>PowchData: done
   AuthFlow->>AuthFlow: CHECK_EMAIL_CARD, COLLECT_EMAIL
@@ -208,10 +209,11 @@ sequenceDiagram
   participant CeremonyProvider
   participant Cloud
 
-  User->>Flow: unlock
-  Flow->>PowchData: unlock()
-  PowchData->>SyncManager: read()
-  SyncManager->>CeremonyProvider: beginLogin, authenticate(PRF only), finishLogin
+  Flow->>CeremonyProvider: beginLogin (on sign-in screen entry, before the tap)
+  User->>Flow: Returning (tap)
+  Flow->>PowchData: unlockWithOptions(options)
+  PowchData->>SyncManager: readWithOptions(options)
+  SyncManager->>CeremonyProvider: authenticate(PRF only, first await), finishLogin
   SyncManager->>SyncManager: derive CloudKey from PRF + credentialId
   SyncManager->>CeremonyProvider: fetchVault()
   CeremonyProvider->>Cloud: powch_vault_get
@@ -226,6 +228,6 @@ sequenceDiagram
 ## 7. Summary
 
 - **Vault** is stored in the cloud as an encrypted blob. No largeBlob; CloudKey derived from PRF + credentialId on each ceremony.
-- **Onboarding:** createPasskeyBlob → COLLECT_EMAIL → saveCard(emailCard) triggers first vault upload.
+- **Onboarding:** createPasskeyBlobWithCachedOptions → COLLECT_EMAIL → saveCard(emailCard) triggers first vault upload.
 - **Read/Write** semantics of PowchData (unlock, saveCard) are unchanged for consumers.
 - **Downstream:** Paper backup via cloudKeyToMnemonic; deauthorization via backend revoke and vault_get enforcement.

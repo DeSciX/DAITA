@@ -10,7 +10,7 @@ This guide describes how to create and wire flow controllers in Powch. Flows are
 
 Flows are **headless state machines** — they manage logic and state transitions but do not render. React views are selected by view name; PowchModal resolves view names from the ViewRegistry and forwards user events back to the active flow.
 
-- **FlowRunner** runs flows and handles pre-flight (e.g. vault unlock).
+- **FlowRunner** runs flows and handles pre-flight (the sign-in tap step when a flow needs the vault unlocked).
 - **BaseFlowController** provides the state-machine engine; all flows extend it.
 - **Views** receive props from the flow and emit events via `onNext`, `onCancel`.
 
@@ -46,7 +46,7 @@ Flow controllers receive a `context` object from FlowRunner:
 | `wallet` | Current wallet projection |
 | `credentialId`, `hasCredential` | Passkey state |
 
-Flows call **PowchData** directly for persistence: `PowchData.saveCard()`, `PowchData.exportPaperBackup()`, etc. No separate auth service in context.
+Flows call **PowchData** directly for persistence: `PowchData.saveCards(cards, options)`, `PowchData.exportPaperBackup(options)`, etc. — passkey taps take options from ceremonyOptions.js, fetched before the tap No separate auth service in context.
 
 ---
 

@@ -71,8 +71,8 @@ No seed phrases. No separate wallet setup.
 
 ### Atomic Registration
 
-`SyncManager.createCredential()`:
-1. Performs WebAuthn create
+`SyncManager.createCredentialWithCachedOptions(options)` (options prefetched before the New-account tap):
+1. Performs WebAuthn create as the tap's first await
 2. Derives CloudKey and master wallet
 3. Signs DEFAULT_SIGNATURE_MESSAGE with the wallet
 4. Sends attestation + walletAddress + walletSignature to `powch_register_finish`
@@ -124,7 +124,7 @@ flowchart TB
         Vault[_vault]
     end
     Req --> Runner
-    Runner -->|"pre-flight unlock if required"| data
+    Runner -->|"pre-flight sign-in tap step if required"| data
     Runner --> FC
     FC -->|"unlock / createPasskeyBlob / saveCard"| data
     data -->|"read / createCredential / writeToEnclave"| SM
@@ -133,17 +133,19 @@ flowchart TB
 
 - **Host** sends requests via postMessage. The host must open the UI before sending; Powch rejects when its tab is not visible.
 - **PowchAppProvider** invokes **FlowRunner** with the appropriate Flow class.
-- **FlowRunner** performs pre-flight: if the flow requires vault unlocked and it is locked, calls `PowchData.unlock()` first.
-- **FlowController** calls **PowchData** only: `unlock()`, `createPasskeyBlob()`, `saveCard()`, plus getters and signing APIs.
+- **FlowRunner** performs pre-flight: if the flow requires vault unlocked and it is locked, it shows the sign-in tap step (UnlockFlowController: UnlockPromptView, LOGIN_PROMPT → tap → LOGIN_ON_TAP) before the flow starts; no passkey request runs without a tap.
+- **FlowController** calls **PowchData** only: `unlockWithOptions(options)`, `createPasskeyBlobWithCachedOptions(options, data)`, `saveCards(cards, options)` / `saveCard(card, options)`, plus getters and signing APIs. Every passkey ceremony takes options fetched before the tap (ceremonyOptions.js) and runs as the tap's first await.
 - **PowchData** delegates to **SyncManager**, which uses the injected **CeremonyProvider** for WebAuthn and network.
 
 ### SyncManager Operations
 
 | Method | Purpose | Returns |
 |--------|---------|---------|
-| `read()` | WebAuthn get + PRF; derive CloudKey; fetch vault via `powch_vault_get`; decrypt. No largeBlob. | `{ blob \| null, prfKey, credentialId }` |
-| `createCredential()` | WebAuthn create; derive CloudKey + master wallet; send to finishRegistration. | `{ prfKey, credentialId, cloudKey, walletAddress }` |
-| `writeToEnclave(vault, credentialId)` | WebAuthn get + PRF; derive CloudKey; encrypt; putVault to cloud. | void |
+| `beginLoginOptions()` / `beginRegistrationOptions()` / `beginWriteOptions()` | Fetch ceremony options before the tap (powch_login_begin / powch_register_begin / powch_write_wallet_begin). | options with `challengeTtlSeconds` |
+| `readWithOptions(options)` | WebAuthn get + PRF (first await); derive CloudKey; fetch vault via `powch_vault_get`; decrypt. No largeBlob. | `{ blob \| null, prfKey, credentialId }` |
+| `createCredentialWithCachedOptions(options, data)` | WebAuthn create (first await); derive CloudKey + master wallet; send to finishRegistration. | `{ prfKey, credentialId, cloudKey, walletAddress }` |
+| `writeToEnclave(vault, credentialId, options)` | WebAuthn get + PRF (first await); derive CloudKey; encrypt; putVault to cloud. | void |
+| `getPrfForExport(options)` | WebAuthn get + PRF (first await) for the paper backup. | `{ prfOutput, credentialId }` |
 
 ### CeremonyProvider and Network
 

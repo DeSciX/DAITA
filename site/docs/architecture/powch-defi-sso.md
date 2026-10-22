@@ -8,7 +8,7 @@ Powch is the **DeFi Banking + SSO layer** across the DeSciX DAO/DEX ecosystem. A
 
 One identity across:
 
-- DeSciX PWA (app.descix.net)
+- DeSciX PWA (descix.net)
 - Powch PWA (powch.descix.net)
 - CLI and MCP
 - Embedded apps (CodeSites, iframes)

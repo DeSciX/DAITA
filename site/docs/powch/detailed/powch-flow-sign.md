@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The SIGN flow handles the secure signing of Ethereum transactions, personal messages, or typed data. Implemented by **SignFlowController**; started on `POWCH_SIGN`, `POWCH_SIGN_TX`, `POWCH_SIGN_MESSAGE`, or `POWCH_SIGN_TYPED_DATA` with options including `type`, `tx` / `message` / `domain`+`types`+`value`, and `address`. **requirements.vaultUnlocked:** true — FlowRunner calls **PowchData.unlock()** before starting this flow if the vault is locked (and credential exists). There is no AUTH_REQUIRED state; PREPARE_DATA assumes the vault is already unlocked.
+The SIGN flow handles the secure signing of Ethereum transactions, personal messages, or typed data. Implemented by **SignFlowController**; started on `POWCH_SIGN`, `POWCH_SIGN_TX`, `POWCH_SIGN_MESSAGE`, or `POWCH_SIGN_TYPED_DATA` with options including `type`, `tx` / `message` / `domain`+`types`+`value`, and `address`. **requirements.vaultUnlocked:** true — FlowRunner shows the sign-in tap step (UnlockPromptView) before starting this flow if the vault is locked (and credential exists). There is no AUTH_REQUIRED state; PREPARE_DATA assumes the vault is already unlocked.
 
 The controller uses **PowchData.resolveAddress(address)** to get cardId and keyIndex, and **PowchData.signTransaction** / **signMessage** / **signTypedData** (with makeApiRequest from context) for signing.
 

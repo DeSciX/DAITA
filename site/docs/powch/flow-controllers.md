@@ -6,7 +6,7 @@ Flow controllers are headless state machines that encapsulate business logic for
 
 **Location:** Powch's React layer, `BaseFlowController` module
 
-All flow controllers extend BaseFlowController. **Default** `requirements = { vaultUnlocked: true }`; AuthFlowController overrides to `false`. **FlowRunner** checks before starting: if `vaultUnlocked` is true and the vault is locked (but credential exists), it calls `PowchData.unlock()` first; on failure the flow is rejected. See [architecture.md](./architecture.md).
+All flow controllers extend BaseFlowController. **Default** `requirements = { vaultUnlocked: true }`; AuthFlowController overrides to `false`. **FlowRunner** checks before starting: if `vaultUnlocked` is true and the vault is locked (but credential exists), it shows the sign-in tap step (UnlockFlowController / UnlockPromptView) first; if the user cancels it the flow is rejected. See [architecture.md](./architecture.md).
 
 ### Context API
 
@@ -16,7 +16,7 @@ Flow controllers receive a context object from PowchAppProvider (built by FlowRu
 |--------|---------|
 | `completeRequestInternal(result)` | Complete the current request |
 | `dispatchFlow(Controller, options)` | Start a nested flow |
-| (data) | Flows call **PowchData.unlock()**, **PowchData.createPasskeyBlob()**, **PowchData.saveCard(card)** for auth and persistence. No authService or powchClient.login in context. |
+| (data) | Flows call **PowchData.unlockWithOptions(options)** (sign-in tap only), **PowchData.createPasskeyBlobWithCachedOptions()** (New-account tap only), **PowchData.saveCards(cards, options)** for auth and persistence. No authService or powchClient.login in context. |
 
 ---
 
@@ -29,10 +29,10 @@ Purpose: "Get ID Card for Site" — user identification, authentication (biometr
 > **Consent restructure (2026-07-03 — GUARDRAIL-2026-07-03-POWCH-CONSENT-INVERSION):**
 > the new-user commit path is now `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
 > with `powch_register_finish`) → `COLLECT_EMAIL_TOS_PK` (collect-only, no network) →
-> `CONSENT_GATE` → **`SUBMIT_TOS`** (consent-filtered writes: wallet registration via
-> `register_powch_wallet_address` iff `wallet_address` consented; `descix_accept_tos`
-> email iff an email field consented) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
-> Empty `require` ⇒ nothing shared. The mermaid diagram below also predates
+> `CONSENT_GATE` → **`SUBMIT_TOS`** (always: master wallet via
+> `register_powch_wallet_address`, then `descix_accept_tos` with the verified email,
+> eabadir/Unkamon#68) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
+> Empty `require` ⇒ the host page receives the session only. The mermaid diagram below also predates
 > WS-AUTH-STATE-PURGE (the pre-passkey AIRDROP_ONBOARDING_CHOICE is gone; the
 > entitlement choice is post-connect). `AuthFlowController.js` is the source of truth;
 > the affected state/event rows below have been updated.
@@ -42,7 +42,7 @@ Purpose: "Get ID Card for Site" — user identification, authentication (biometr
 ```mermaid
 stateDiagram-v2
     [*] --> CHECK_SESSION
-    CHECK_SESSION --> PROMPT_TYPE: guest or forceLogin
+    CHECK_SESSION --> PROMPT_TYPE: vault locked (sign-in needs a tap) or forceLogin
     CHECK_SESSION --> CONSENT_GATE: already unlocked, consent done
     CHECK_SESSION --> COLLECT_EMAIL_TOS_PK: unlocked, no identity card
     CHECK_SESSION --> FINISH: already unlocked, consented
@@ -80,18 +80,18 @@ stateDiagram-v2
 
 | State | Type | Description |
 |-------|------|-------------|
-| `CHECK_SESSION` | action | If vault already unlocked: check identity card; go to FINISH, CONSENT_GATE, or COLLECT_EMAIL_TOS_PK. Else if hasCredential → TRY_UNLOCK; else → PROMPT_TYPE. |
-| `PROMPT_TYPE` | UI | PowchMainView — returning vs new user. NEW branch triggers `_prefetchRegistration` (Chunk 1) and routes to AIRDROP_ONBOARDING_CHOICE. |
+| `CHECK_SESSION` | action | If vault already unlocked: check identity card; go to FINISH, CONSENT_GATE, or COLLECT_EMAIL_TOS_PK. Else → PROMPT_TYPE (a stored credential too: sign-in starts only from a tap). |
+| `PROMPT_TYPE` | UI | PowchMainView — returning vs new user. Entry prefetches the sign-in and registration options (ceremonyOptions.js); each button is disabled until its options load. NEW and routes to AIRDROP_ONBOARDING_CHOICE. |
 | `AIRDROP_ONBOARDING_CHOICE` | UI | OnboardingEntryChoice — airdrop / fiat / crypto / (optional SKIP in DEV). AIRDROP and SKIP both route directly to CREATE_PASSKEY_BLOB (passkey-first). |
 | `FIAT_PURCHASE` | UI | FiatStubScreen (B1 stub) |
 | `CRYPTO_PURCHASE` | UI | CryptoStubScreen: 'Crypto purchase is not available yet; buy with a card.' (no call) |
-| `TRY_UNLOCK` | action | PowchData.unlock(); on success → CHECK_EMAIL_CARD; on error → UNLOCK_FAILED |
-| `UNLOCK_FAILED` | UI | UnlockFailedView — Create New Account or Back. CREATE triggers `_prefetchRegistration` + → CREATE_PASSKEY_BLOB |
-| `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (uses cached registrationOptions from Chunk 1 when available) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK |
+| `TRY_UNLOCK` | action | Entered only from a tap; PowchData.unlockWithOptions(options) with the prefetched options (get() is the first await); on success → CHECK_EMAIL_CARD; on error → UNLOCK_FAILED |
+| `UNLOCK_FAILED` | UI | UnlockFailedView — the browser's own error; Try again (RETRY, disabled until fresh sign-in options load), Create New Account or Back. CREATE (disabled until registration options load) → CREATE_PASSKEY_BLOB |
+| `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (createOnTap: the registration options prefetched on screen entry; create() is the first await; not ready → fails loud, no refetch) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK |
 | `CHECK_EMAIL_CARD` | action | Returning-user branch: if identity card exists → CONSENT_GATE; else fallback to → COLLECT_EMAIL_TOS_PK |
 | `COLLECT_EMAIL_TOS_PK` | UI | CollectEmailTosPkView — consolidated email + TOS. **Collect-only (no network):** stashes the payload on `ctrl.data.pendingTos` → CONSENT_GATE. |
-| `CONSENT_GATE` | action | No PII requested → nothing shared (`consentedFields=[]`) and continue; requested + `hasConsent(origin, require)` → silent continue; else → SHOW_CONSENT_UI. Continuation is SUBMIT_TOS when `pendingTos` exists, else ACQUIRE_ENTITLEMENT_CHOICE (new onboarding) / FINISH. |
-| `SUBMIT_TOS` | action | Consent-filtered server commit: `register_powch_wallet_address` iff `wallet_address` consented (signature iff `wallet_signature` consented), then `descix_accept_tos` with email iff an email field consented (any-token gate runs server-side). Airdrop trio requires email consent (the challenge message embeds the email). Gate PASS: MASTER_ID card + vault persist (local), → ACQUIRE_ENTITLEMENT_CHOICE / FINISH. Gate FAIL: reject — user stays NOT_AUTHENTICATED. |
+| `CONSENT_GATE` | action | Decides the host-page share only. No PII requested → `consentedFields=[]` and continue; requested + `hasConsent(origin, require)` → silent continue; else → SHOW_CONSENT_UI. Continuation is SUBMIT_TOS when `pendingTos` exists, else ACQUIRE_ENTITLEMENT_CHOICE (new onboarding) / FINISH. |
+| `SUBMIT_TOS` | action | Account commit, independent of `consentedFields` (eabadir/Unkamon#68): `register_powch_wallet_address` with the master wallet address + signature (this session's pair, else re-derived from the held cloudKey), then `descix_accept_tos` with the verified email (any-token gate runs server-side). A missing verified email or master wallet rejects with that reason before any write. Gate PASS: MASTER_ID card + vault persist (local), → ACQUIRE_ENTITLEMENT_CHOICE / FINISH. Gate FAIL: reject — user stays NOT_AUTHENTICATED. |
 | `SHOW_CONSENT_UI` | UI | ConsentView — approve or deny |
 | `FINISH` | action | Result filtered by consented fields via canonical `ConsentRules` matchers; completeRequestInternal(result); resolve(result) |
 
@@ -106,6 +106,7 @@ stateDiagram-v2
 | `CRYPTO` | OnboardingEntryChoice | → CRYPTO_PURCHASE |
 | `SKIP` | OnboardingEntryChoice (DEV) | → CREATE_PASSKEY_BLOB |
 | `CANCEL` | OnboardingEntryChoice | → PROMPT_TYPE |
+| `RETRY` | UnlockFailedView | → TRY_UNLOCK |
 | `CREATE` | UnlockFailedView | → CREATE_PASSKEY_BLOB (with prefetch) |
 | `BACK` | UnlockFailedView | → PROMPT_TYPE |
 | `SUCCESS` | CollectEmailTosPkView | Stash payload (email, tosAccepted) on `ctrl.data.pendingTos` — NO network call — → CONSENT_GATE. The server commit happens in SUBMIT_TOS after consent resolves. |
@@ -228,7 +229,7 @@ stateDiagram-v2
 | `HANDLE_EXISTING_SELECTION` | action | Set selected address from existing wallet |
 | `HANDLE_DISPATCH_IMPORT` | action | Dispatch ImportFlowController as sub-flow; on resolve return to SHOW_UI |
 | `HANDLE_GENERATE` | action | Generate new random wallet |
-| `PROCESS_CONFIRMATION` | action | Sign message if needed, saveCard(pendingCard) if new key |
+| `PROCESS_CONFIRMATION` | action | Sign message if needed; a new key → VAULT_SAVE_PROMPT (vault-save tap step), else resolve |
 
 ### Events
 
@@ -243,7 +244,7 @@ stateDiagram-v2
 
 ### Key Persistence
 
-When a new key is imported or generated, the flow creates a CRYPTO_WALLET card and calls **PowchData.saveCard(card)**. See [data-security-architecture.md](./data-security-architecture.md) for the single-entry-point and vaultOps pattern.
+When a new key is imported or generated, the flow creates a CRYPTO_WALLET card and saves it from the vault-save tap step (vaultSaveStep.js: **PowchData.saveCards(cards, options)**, get() as the tap's first await). See [data-security-architecture.md](./data-security-architecture.md) for the single-entry-point and vaultOps pattern.
 
 ### Props (WalletConnectFlowProps)
 
@@ -276,7 +277,7 @@ Factories: `standard()`, `fromKey({ privateKey, label })`; host uses `ImportFlow
 
 ### Key Operations
 
-Import flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(card)**. No addKey/commit; see [data-security-architecture.md](./data-security-architecture.md).
+Import flow creates CRYPTO_WALLET cards and persists them in one write from the vault-save tap step. No addKey/commit; see [data-security-architecture.md](./data-security-architecture.md).
 
 ---
 
@@ -284,14 +285,14 @@ Import flow creates a CRYPTO_WALLET card and persists via **PowchData.saveCard(c
 
 **Location:** Powch's React layer, `ExportPaperBackupFlowController` module
 
-Handles exporting the recovery phrase (CloudKey as BIP-39 mnemonic). Triggers biometric via **PowchData.exportPaperBackup()**. Entry points: hamburger "Export Paper Backup", and inline in WalletManagerView Security tab.
+Handles exporting the recovery phrase (CloudKey as BIP-39 mnemonic). Triggers biometric via **PowchData.exportPaperBackup(options)**; SHOW_EXPORT_UI prefetches the vault-write options and its buttons wait for them. Entry points: hamburger "Export Paper Backup", and inline in WalletManagerView Security tab.
 
 **Props (ExportPaperBackupFlowProps):** Use `ExportPaperBackupFlowProps.standard()` for internal calls; no host invocation.
 
 ### State Machine
 
 - `SHOW_EXPORT_UI` (UI): Prompt or mnemonic display; events: REQUEST_EXPORT, RETRY, DONE
-- `EXECUTE_EXPORT` (action): Call PowchData.exportPaperBackup(); on success store mnemonic and return to SHOW_EXPORT_UI
+- `EXECUTE_EXPORT` (action): exportOnTap — PowchData.exportPaperBackup(options) with the prefetched options, get() first; on success store mnemonic and return to SHOW_EXPORT_UI
 
 ---
 
@@ -307,7 +308,7 @@ Handles payment flows. Currently stubbed for future implementation.
 
 ### Starting a Flow
 
-PowchAppProvider starts flows via **FlowRunner.runFlow(FlowClass, options, deps)**. FlowRunner performs pre-flight unlock if the flow has `requirements.vaultUnlocked`, then builds context and starts the flow. Flows call **PowchData.unlock()**, **PowchData.createPasskeyBlob()**, **PowchData.saveCard(card)**, **PowchData.signTransaction(cardId, ...)** etc. directly. See [architecture.md](./architecture.md).
+PowchAppProvider starts flows via **FlowRunner.runFlow(FlowClass, options, deps)**. FlowRunner shows the pre-flight sign-in tap step if the flow has `requirements.vaultUnlocked` and the vault is locked, then builds context and starts the flow. Flows call **PowchData.unlockWithOptions(options)**, **PowchData.createPasskeyBlobWithCachedOptions()**, **PowchData.saveCards(cards, options)**, **PowchData.signTransaction(cardId, ...)** etc. directly. See [architecture.md](./architecture.md).
 
 ### Completing a Flow
 
