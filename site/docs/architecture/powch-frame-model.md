@@ -26,12 +26,12 @@ second shell.
 ```
 [top]  https://descix.net/                       the shell (store boot: /__descix/app-binding.json → 404, appBinding.js:7,95)
   │    renders TopNavBar (site App.jsx:119), AppWidget → AppSurfaceWidget → CodeSiteWidget (App.jsx:139),
-  │    ChatWidget IN THIS DOCUMENT (CodeSiteWidget.jsx:367-389; AppSurfaceWidget.jsx:40),
+  │    ChatWidget IN THIS DOCUMENT (CodeSiteWidget.jsx:369-391; AppSurfaceWidget.jsx:40),
   │    PowchSideBarWidget (App.jsx:166), the window.DeSciX bus (AppContext.jsx:587; hooks/useDeSciXBridge.js:32)
   ├─ iframe "Code Site"   src https://descix.net/prod/egpt-frqtl/site/index.html      SAME ORIGIN as top
   │    (AppData.getProductUrl resolves the record's PATH on the current origin: AppData.jsx:64-70; productUrl.js:86-103;
-  │     sandbox "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin", allow="fullscreen":
-  │     CodeSiteWidget.jsx:307,331-342)
+  │     sandbox "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-same-origin", allow="fullscreen":
+  │     CodeSiteWidget.jsx:309,333-344)
   │    the app's static site + DeSciXAppSDK.js. No AppShell, no TopNavBar, no ChatWidget, no Powch (served egpt-frqtl bundle: 0 hits).
   └─ iframe #powch-standalone-iframe   src https://powch.descix.net/                 CROSS ORIGIN (same site)
        allow="publickey-credentials-get *; publickey-credentials-create *", no sandbox (app-sdk components/PowchSideBarWidget.jsx:85-92)
