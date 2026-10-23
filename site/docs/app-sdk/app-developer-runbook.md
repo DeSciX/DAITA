@@ -29,14 +29,14 @@ Every quoted output below is what the CLI printed on a real run against the refe
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix <command>
+npx -y -p @descix/cli@4.3.1 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "4.3.0" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "4.3.1" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 - Read a command's flags from the CLI itself: `descix <group> <command> --help` prints that
@@ -44,9 +44,9 @@ npx -y -p @descix/cli@4.3.0 descix <command>
   commands that do: `error: unknown command 'uplod'` then `'descix site' has: delete, init,
   list, status, upload`.
 
-**Verify:** `npx -y -p @descix/cli@4.3.0 descix --version` prints `4.3.0`.
+**Verify:** `npx -y -p @descix/cli@4.3.1 descix --version` prints `4.3.1`.
 
-`@descix/app-sdk` 0.7.0 is the library your site code imports. Its entry points are
+`@descix/app-sdk` 0.8.0 is the library your site code imports. Its entry points are
 `@descix/app-sdk` (the React components, among them `AppShell`, `AppProvider`, `PowchClient`,
 `VIEW_MODES` and `requestView`), `@descix/app-sdk/AppShell`, `@descix/app-sdk/AppData`,
 `@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/chat-context`,
@@ -65,7 +65,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@4.3.0 descix config init --env prod
+npx -y -p @descix/cli@4.3.1 descix config init --env prod
 ```
 
 ```
@@ -85,7 +85,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix login
+npx -y -p @descix/cli@4.3.1 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -126,7 +126,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix whoami
+npx -y -p @descix/cli@4.3.1 descix whoami
 ```
 
 ```
@@ -146,7 +146,7 @@ root. Run `app init` **from the repo root**, in a checkout that is not inside an
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app init -a <app_id>
+npx -y -p @descix/cli@4.3.1 descix app init -a <app_id>
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -170,7 +170,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app init -a <name> -c <community>
+npx -y -p @descix/cli@4.3.1 descix app init -a <name> -c <community>
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -389,7 +389,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -414,7 +414,7 @@ npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static site
 Then, from the repo root or any directory below it:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix serve
+npx -y -p @descix/cli@4.3.1 descix serve
 ```
 
 `descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
@@ -448,6 +448,11 @@ exists only on your local gateway, never on the deployed platform.
 Static serving is a **live, per-request disk read**: rebuild your bundle into the static
 directory and refresh the browser — no gateway restart.
 
+The gateway decodes a static path once, so a file named `Science Computers And People.md` is
+served at `/p/<app_id>/Science%20Computers%20And%20People.md`. A malformed escape (`%E0%A4%A`)
+or a NUL byte in the decoded path answers 400, a `..` segment in the decoded path answers 403,
+and a missing file answers 404.
+
 Passkey sign-in in the shell needs the gateway's certificate trusted:
 `descix dev-certs check` exits 0 when it is (`Status: trusted`); if not, run
 `descix dev-certs trust` once, then quit and reopen the browser. A `User cancelled` on sign-in
@@ -471,8 +476,8 @@ inside the shell with sign-in, point THIS app's static route at them for the ses
 the tracked config back. From the app's own checkout, with the scratch directory beside it:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static ../<dir>
-npx -y -p @descix/cli@4.3.0 descix serve
+npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@4.3.1 descix serve
 ```
 
 Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
@@ -512,6 +517,11 @@ Browser full screen is a different thing: the browser's Fullscreen API, which th
 iframe delegates (`allow="fullscreen"`). Your app calls `element.requestFullscreen()` from a
 user tap, on top of any view. Android and desktop browsers support it; iPhone Safari does not,
 and there `document.fullscreenEnabled` is `false`.
+
+The shell's app iframe is sandboxed with exactly these tokens:
+`allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-same-origin`.
+`allow-downloads` lets your app hand the visitor a file (a `Blob` behind `<a download>`); a
+capability outside the list (`allow-modals`, `allow-top-navigation`, …) is blocked in the frame.
 
 ```js
 DeSciX.view.set('NoChrome');
@@ -583,17 +593,18 @@ there is no chrome to drop.
 ### 5.3 Your page and the shell's chat
 
 The shell's chat panel (in `SplitView` and `Chat`) sends each turn with your app's id, the
-user's words, its own conversation thread and any staged attachment. It names no knowledge base,
-so it answers from your app's default KB (§6.1) under that KB's system instructions. It sends
-nothing about your page — not the route, the document on screen, the selection, or the sources
-the page shows. `@descix/app-sdk` 0.6.0 provides no surface for a page to add page context to
-the chat panel's turns or to choose which KBs the chat panel searches.
+user's words, its own conversation thread and any staged attachment. On its own it names no
+knowledge base, so it answers from your app's default KB (§6.1) under that KB's system
+instructions, and it sends nothing about your page. Your page changes that with
+`DeSciX.setChatContext` (the page → chat context row below): it names the page, the KBs each turn
+searches and a document added to each turn.
 
-What crosses between your page and the shell, as built in `@descix/app-sdk` 0.6.0:
+What crosses between your page and the shell, as built in `@descix/app-sdk` 0.8.0:
 
 | Direction | Surface | What it carries |
 |---|---|---|
 | chat → page | `window.DeSciX_Actions` in your page | in `SplitView`, a reply that ends with a fenced block tagged `json:call:<name>` whose body is a JSON object shows a Run button; on the user's click the shell calls `DeSciX_Actions.<name>(args)` and sends the return value (or the error) back into the conversation as the next turn, one metered turn. A body that is not valid JSON shows no button |
+| page → chat context | `DeSciX.setChatContext({ sourceUrl, data: { title, kbNames, docId }, script })` and `DeSciX.clearChatContext()` | what the page has open: `sourceUrl` names the page to the model, `title` shows in the pane as `Reading: <title>`, `kbNames` become each turn's `knowledgebase_names` (the first one's instructions shape the reply), `docId` adds that document's whole text to each turn, other `data` keys reach the model as page data, and `script` runs in the chat pane with `(chat, data)`. It returns `{ outcome, reason }`, `outcome` one of `attached`, `cleared`, `unavailable` (no readable shell, or a shell older than `@descix/app-sdk` 0.7.0) and `refused`; a malformed argument throws `CHAT_CONTEXT_INVALID`. The shell drops the context when the app or its site changes and when the page that set it unloads. Field limits and the script's `chat` members: `APP_SHELL_API.md` in `@descix/app-sdk`, section `DeSciX.setChatContext` |
 | page → chat | `DeSciX.chat.sendMedia(media, { note, disposition })` | one image or video, with `note` as text beside it; `disposition: 'stage'` (default) rides the user's next turn, `'send'` submits a turn now. Text alone cannot be sent |
 | page → model, its own thread | `DeSciX.call('ask_question_to_app', params)` | a question your page asks itself, answered on a thread your page holds; it is not the chat panel's thread and the answer does not appear in the panel |
 
@@ -622,6 +633,60 @@ answer; omit the field to search only the app's default KB. `file_id` and `doc_i
 document to the turn, and a source synced by `kb corpus sync` has no whole document, so neither
 pins a corpus source: `doc_ids` naming one refuses the turn with
 `No whole-document object for 'corpus:<sha>' (chunk-only corpus source)`.
+
+### 5.4 Sign-in state: the "Log in with Powch" button
+
+`DeSciX.powch.on('auth', cb)` tells your page when the user is signed in. It calls `cb` once
+immediately with `{ signedIn, address }`, then each time either value changes. It returns a
+function that unsubscribes, and `DeSciX.powch.off('auth', cb)` does the same. The method needs a
+shell on `@descix/app-sdk` 0.8.0 or later; under an older shell, `DeSciX.powch.on` is
+`undefined`. The same example sits in the doc comment on `DeSciX.powch` in the `DeSciXAppSDK.js`
+that `descix site init` copies into your site; the scaffold's `index.html` has no login button,
+so add the button yourself.
+
+```html
+<button id="powch-login">Log in with Powch</button>
+<script src="./DeSciXAppSDK.js"></script>
+<script>
+  (async () => {
+    await DeSciX.ready();
+    const button = document.getElementById('powch-login');
+    if (!DeSciX.powch) { button.hidden = true; return; }   // no shell above this page
+    const unsubscribe = DeSciX.powch.on('auth', ({ signedIn }) => {
+      button.textContent = signedIn ? 'Logged In' : 'Log in with Powch';
+      button.disabled = signedIn;
+    });
+    button.onclick = () => DeSciX.powch.login();
+    addEventListener('pagehide', unsubscribe);
+  })();
+</script>
+```
+
+- `signedIn` is whether the shell holds a DeSciX session. Every sign-in the shell sees sets it to
+  `true`: your page's `login()`, the shell's own Sign In, a sign-in inside the Powch sidebar, and
+  a session restored when the page loads. It becomes `false` when the shell's session ends.
+- `address` is the wallet address Powch released to the shell with a sign-in it asked for, and
+  `null` when Powch released none. The shell's own sign-in asks for the session only, so for that
+  sign-in `address` is `null`.
+- `DeSciX.powch.isAuthenticated()` and `DeSciX.powch.getAddress()` return the same two values.
+- `DeSciX.powch.logout()` signs Powch out but leaves the shell's session in place, so `signedIn`
+  stays `true`.
+- The shell calls `cb` directly, because your page and the shell share an origin. No
+  `postMessage` is involved. Unsubscribe on `pagehide` so that the shell does not call into a page
+  that has unloaded.
+- `'auth'` is the only event. Any other event name throws, and so does a `cb` that is not a
+  function.
+- Code that holds a `PowchBridgeClient` (the shell's side of the bridge) reads sign-in state from
+  its one owner, `bridge.auth`: `bridge.auth.current.signedIn`, `bridge.auth.current.address`,
+  and `bridge.auth.on('auth', cb)`. The members `isAuthenticated`, `displayAddress` and `wallet`
+  are removed; reading one throws
+  `PowchBridgeClient.<member> is removed: read bridge.auth.current.… (or subscribe with bridge.auth.on('auth', cb))`.
+
+A page that uses `PowchClient` (`@descix/app-sdk/powch-client`) inside the shell gets the same
+state from `client.on('auth', user => …)` / `client.on('logout', …)` and `client.getUser()`. On a
+host with no shell, `PowchClient` hears only of the sign-ins its own `auth()` requested. Powch
+reports a sign-in only to the host whose request started it, so a sign-in the user starts inside
+that sidebar is not reported to the host.
 
 ## 6. Knowledge bases
 
@@ -656,9 +721,9 @@ Three rules that save you an afternoon:
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@4.3.0 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@4.3.1 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -722,7 +787,7 @@ Each chunk carries its source's `doc_class`. The full field reference is
 `@descix/cli` 4.1.0 or later:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
+npx -y -p @descix/cli@4.3.1 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
 ```
 
 It needs the app's owner, or an app, community or platform admin. A KB that already exists is a
@@ -737,7 +802,7 @@ would make it. Only `app init -c`, which creates the app, creates its first KB.
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@4.3.1 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -748,7 +813,7 @@ The reply's `📚 Sources:` line reads `<file> [ID: corpus:<sha>]`, and `<sha>` 
 to see the raw chunks instead, query the KB:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
+npx -y -p @descix/cli@4.3.1 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
 ```
 
 `.message.results` holds the matching chunks; each row's `metadata.blob_sha` is the committed
@@ -764,7 +829,7 @@ default, a pointer the platform holds on the app record (`knowledgebase_name`). 
 community:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
+npx -y -p @descix/cli@4.3.1 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
 ```
 
 Each app's entry carries `"knowledgebase_name": "<kb_name>"`; `descix kb list -a <app_id>` lists
@@ -775,7 +840,7 @@ the KBs the app has.
 The app's owner, or an app, community or platform admin, repoints it to a KB the app already has:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
+npx -y -p @descix/cli@4.3.1 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
 ```
 
 A KB the app does not have is refused and nothing is written:
@@ -789,7 +854,7 @@ The chat's voice is the default KB's system instructions; the app has no persona
 them. Read them with:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
+npx -y -p @descix/cli@4.3.1 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
 ```
 
 `.message.app.default_prompt` is the default KB's system instructions, and
@@ -800,7 +865,7 @@ names a KB the app does not have, `default_prompt` is `null` and `source` is `nu
 defaults to `General` whatever the app's default is. Always pass `-k` with the default KB's name:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app sync-assets -a <app_id> -k <kb_name>
+npx -y -p @descix/cli@4.3.1 descix app sync-assets -a <app_id> -k <kb_name>
 ```
 
 The same command writes `assets/app_description.md` and `assets/icon.png` to the app record.
@@ -850,7 +915,9 @@ A root-absolute path renders the chrome and 404s the payload.
 
 The shell forwards your site's query string and hash (open
 `https://<app_id>.descix.net/?x=1#y` and your app receives `?x=1#y`) but not a path — put deep
-state in the query or hash.
+state in the query or hash. The shell reads them once, when it loads: a later change to the
+query or hash in the address bar, or a click on a same-origin `#…` link outside your frame, does
+not reach your app until the page is reloaded.
 
 ### 7.3 `share.json` — the link-preview card
 
@@ -945,7 +1012,7 @@ generic head for up to 5 minutes — wait it out; nothing is wrong.
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -967,7 +1034,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id>
+npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -980,7 +1047,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@4.3.1 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -1072,7 +1139,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@4.3.1 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -1087,7 +1154,7 @@ For everything this page does not cover — backend commands, payments, model tu
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@4.3.0 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@4.3.1 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -1097,15 +1164,15 @@ page, is the whole handbook; when neither answers, apply the wall rule at the to
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@4.3.0 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@4.3.0 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@4.3.0 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@4.3.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
-npx -y -p @descix/cli@4.3.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@4.3.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@4.3.0 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
-npx -y -p @descix/cli@4.3.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@4.3.0 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@4.3.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@4.3.1 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@4.3.1 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@4.3.1 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@4.3.1 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
+npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@4.3.1 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
+npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
+npx -y -p @descix/cli@4.3.1 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@4.3.1 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
