@@ -87,11 +87,11 @@ The backend creates the user, stores the wallet, and returns sessionInfo. After 
 
 ### Keychain Sync
 
-The passkey syncs via the OS (iCloud Keychain, Google Password Manager). CloudKey can be re-derived on any device with the synced passkey. Basic recovery requires no manual seed backup.
+The passkey syncs via the OS (Apple Passwords, Google Password Manager). CloudKey can be re-derived on any device with the synced passkey. Basic recovery requires no manual seed backup.
 
-### Cold Storage (Paper Backup)
+### Cold Storage (the wallet sheet)
 
-Optional: CloudKey can be exported as a BIP-39 mnemonic for long-term cold storage. Implementation: `cloudKeyToMnemonic()` in Powch client-core's `vaultOps`. If all passkeys are lost, the mnemonic restores the master wallet.
+The master wallet's private key is CloudKey. The wallet sheet (client-core `recoverySheet.js`, the one owner of `masterWalletFromCloudKey` and the sheet) prints the 24 words (`cloudKeyToMnemonic`, Powch's encoding: not a standard wallet seed) and the master private key as hex, which any EVM wallet imports to reach the master address's funds (funds-only recovery: the account, vault and credits stay with the lost passkey). AuthFlow makes it mandatory after the passkey is created (`PRINT_WALLET`, `flows/printWalletStep.js`); see [authentication.md](./authentication.md).
 
 ### Vault Deactivation vs Credit Card Deauthorization
 
@@ -142,10 +142,10 @@ flowchart TB
 | Method | Purpose | Returns |
 |--------|---------|---------|
 | `beginLoginOptions()` / `beginRegistrationOptions()` / `beginWriteOptions()` | Fetch ceremony options before the tap (powch_login_begin / powch_register_begin / powch_write_wallet_begin). | options with `challengeTtlSeconds` |
-| `readWithOptions(options)` | WebAuthn get + PRF (first await); derive CloudKey; fetch vault via `powch_vault_get`; decrypt. No largeBlob. | `{ blob \| null, prfKey, credentialId }` |
+| `readWithOptions(options)` | WebAuthn get + PRF (first await); derive CloudKey; fetch vault via `powch_vault_get`; decrypt. No largeBlob. A `powch_login_finish` reply without `recovery_confirmed_at` is refused. | `{ blob \| null, prfKey, credentialId, recoveryConfirmedAt }` |
 | `createCredentialWithCachedOptions(options, data)` | WebAuthn create (first await); derive CloudKey + master wallet; send to finishRegistration. | `{ prfKey, credentialId, cloudKey, walletAddress }` |
 | `writeToEnclave(vault, credentialId, options)` | WebAuthn get + PRF (first await); derive CloudKey; encrypt; putVault to cloud. | void |
-| `getPrfForExport(options)` | WebAuthn get + PRF (first await) for the paper backup. | `{ prfOutput, credentialId }` |
+| `getPrfForExport(options)` | WebAuthn get + PRF (first await) for the wallet sheet. | `{ prfOutput, credentialId }` |
 
 ### CeremonyProvider and Network
 

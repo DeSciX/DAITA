@@ -634,6 +634,44 @@ document to the turn, and a source synced by `kb corpus sync` has no whole docum
 pins a corpus source: `doc_ids` naming one refuses the turn with
 `No whole-document object for 'corpus:<sha>' (chunk-only corpus source)`.
 
+`knowledgebase_names` selects among the KBs of `app_id` only; a name is never looked up in another
+app. The first name must be a KB the app has: an unknown first name refuses the turn with
+`KB_NOT_FOUND`, and its message lists the KBs the app has (`Available: <kb_name>, …`). A later name
+the app does not have adds nothing to the search and is not reported, so check every name against
+`descix kb list -a <app_id>`. `kbNames` in `DeSciX.setChatContext` is sent as
+`knowledgebase_names` for the mounted app, under the same rules.
+
+**One question across several apps.** `ask_multiple_apps` answers one question from the KBs of
+several apps in one reply, on one thread:
+
+```js
+const r = await DeSciX.call('ask_multiple_apps', {
+  apps: ['<app_id>', { app_id: '<second_app_id>' }],   // each entry: an app id, or { app_id }
+  user_input: 'How do these two apps treat the same claim?',
+  // previous_interaction_id: r.interaction_id from the last answer, to continue the thread
+});
+// r.response, r.sources, r.interaction_id, r.apps_queried
+```
+
+The first app's default KB (§6.1) supplies the system instructions that shape the reply. The
+signed-in user must hold, for EVERY listed app, an entitlement to that app or to its community;
+the first app without one refuses the whole call with
+`Access denied to app <app_id>: no community entitlement for <community_id>`. The same call from
+the terminal: `npx -y -p @descix/cli@4.3.1 descix chat --apps <app_id>,<second_app_id> "<question>"`.
+
+**What each ask needs.**
+
+| Command | Needs | Spends |
+|---|---|---|
+| `ask_question_to_app` | a signed-in user | one metered turn on the user's AI credits |
+| `ask_multiple_apps` | a signed-in user with an app or community entitlement for each listed app | one metered turn on the user's AI credits |
+
+A signed-in user who has accepted the Terms of Service holds the platform's base apps: `daita`,
+`powch`, `egpt`, `egpt-frqtl`, `egpt-godsworld`, `egpt-courantgroup`, `daita-beast` and
+`daita-docs` on PROD. `npx -y -p @descix/cli@4.3.1 descix purchases` lists the communities and
+apps you hold. When the user has no credits to draw, either command is refused with
+`CREDITS_REQUIRED` before any answer is generated; top up with `descix credits buy` (§6).
+
 ### 5.4 Sign-in state: the "Log in with Powch" button
 
 `DeSciX.powch.on('auth', cb)` tells your page when the user is signed in. It calls `cb` once
