@@ -599,6 +599,18 @@ instructions, and it sends nothing about your page. Your page changes that with
 `DeSciX.setChatContext` (the page → chat context row below): it names the page, the KBs each turn
 searches and a document added to each turn.
 
+**Your page and the shell share one origin, by contract.** Your app's host serves the shell at
+`/` and frames your site from `/prod/<app_id>/site/` on that same origin; `descix serve` does the
+same on the gateway, framing `/p/<app_id>`. The CodeSite frame's sandbox carries
+`allow-same-origin` (§5.2). Same-origin is a hard precondition: it is what makes the `DeSciX` bus
+and `DeSciX_Actions` reachable at all (`APP_SHELL_API.md` in `@descix/app-sdk`, section "Why
+same-origin matters to you"). Check it on any deployed app:
+
+```bash
+curl -s https://egpt.descix.net/ | grep -o 'src="/prod/daita/site/assets/index-[^"]*"'   # the shell
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' https://egpt.descix.net/prod/egpt/site/index.html   # 200 text/html
+```
+
 What crosses between your page and the shell, as built in `@descix/app-sdk` 0.8.0:
 
 | Direction | Surface | What it carries |
@@ -613,6 +625,18 @@ names and arguments. `egpt-godsworld` (public, `DeSciX/egpt-godsworld`) is a wor
 that app's own code: `site/app-assets/maxi-hands.js` assigns `window.DeSciX_Actions` from one
 table and renders the same table into the KB's instructions, and `site/app-assets/maxi-ask.js`
 asks its own questions with `DeSciX.call`.
+
+**Links in a chat reply.** The pane renders each reply as Markdown with `marked`, in the shell's
+own document. A link becomes a plain `<a href>` with no `target`, and the shell intercepts no
+click on it. A link to another origin navigates the whole tab, shell and your app with it. A
+`#…` link changes only the shell's address bar; your page's frame does not see it.
+
+**The chat pane's DOM is not a supported surface.** A rendered reply has no stable id or data
+attribute, and no event fires when a reply renders. Your page works with the chat through the
+surfaces in the table above and the bus members `APP_SHELL_API.md` documents: `DeSciX.call`,
+`DeSciX.view`, `DeSciX.chat.setContext` (through `DeSciX.setChatContext`) with its `script`,
+which runs each time a context arrives and each time the pane opens with one,
+`DeSciX.chat.sendMedia`, and `DeSciX.powch.on('auth')`.
 
 **Your page's own questions.** `DeSciX.call` comes from the `DeSciXAppSDK.js` in your site
 (§5.2). It needs a signed-in user, throws when no shell is above the page, and each call is one
