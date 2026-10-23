@@ -30,8 +30,8 @@ Purpose: "Get ID Card for Site" — user identification, authentication (biometr
 > the new-user commit path is now `CREATE_PASSKEY_BLOB` (wallet pair DEFERRED — not sent
 > with `powch_register_finish`) → `COLLECT_EMAIL_TOS_PK` (collect-only, no network) →
 > `CONSENT_GATE` → **`SUBMIT_TOS`** (always: master wallet via
-> `register_powch_wallet_address`, then `descix_accept_tos` with the verified email,
-> eabadir/Unkamon#68) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
+> `register_powch_wallet_address`, then `descix_accept_tos` with the verified email, whatever
+> the host requested) → `ACQUIRE_ENTITLEMENT_CHOICE` / `FINISH`.
 > Empty `require` ⇒ the host page receives the session only. The mermaid diagram below also predates
 > WS-AUTH-STATE-PURGE (the pre-passkey AIRDROP_ONBOARDING_CHOICE is gone; the
 > entitlement choice is post-connect). `AuthFlowController.js` is the source of truth;
@@ -80,20 +80,23 @@ stateDiagram-v2
 
 | State | Type | Description |
 |-------|------|-------------|
-| `CHECK_SESSION` | action | In a Continue-on-Powch window (`options.topLevelCreate`) → CREATE_ON_POWCH. If vault already unlocked: check identity card; go to FINISH, CONSENT_GATE, or COLLECT_EMAIL_TOS_PK. Else → PROMPT_TYPE (a stored credential too: sign-in starts only from a tap). |
-| `PROMPT_TYPE` | UI | PowchMainView — returning vs new user. Entry prefetches the sign-in and registration options (ceremonyOptions.js); each button is disabled until its options load. NEW (and UNLOCK_FAILED CREATE) asks `core/createPlacement.js`: top level → CREATE_PASSKEY_BLOB; a frame under a cross-origin host → the same tap opens the Powch window (`openTopLevelCreate`) → CREATE_AT_TOP_LEVEL, no create() in the frame. |
+| `CHECK_SESSION` | action | In a Continue-on-Powch window (`options.topLevelCreate`) → CREATE_ON_POWCH. With `options.signInOptions` (the locked vault's Unlock Vault tap in CardsHomeView took them; `PowchAppProvider` `unlockVault`; the lock screen holds them only while it is shown on screen in a visible document, `components/unlockVaultSignIn.js` + `useShownOnScreen`, so a closed sidebar or hidden tab issues no `powch_login_begin`) → TRY_UNLOCK with those options, no Returning/New choice; no credential known on this device → throws. If vault already unlocked: check identity card; go to FINISH, CONSENT_GATE, or COLLECT_EMAIL_TOS_PK. Else → PROMPT_TYPE (a stored credential too: sign-in starts only from a tap). |
+| `PROMPT_TYPE` | UI | PowchMainView — returning vs new user. Entry prefetches the sign-in and registration options (ceremonyOptions.js); each button is disabled until its options load. NEW (and UNLOCK_FAILED CREATE) asks `core/createPlacement.js`: top level → CREATE_ON_POWCH (the create screen); a frame under a cross-origin host → the same tap opens the Powch window (`openTopLevelCreate`) → CREATE_AT_TOP_LEVEL, no create() in the frame. |
 | `AIRDROP_ONBOARDING_CHOICE` | UI | OnboardingEntryChoice — airdrop / fiat / crypto / (optional SKIP in DEV). AIRDROP and SKIP both route directly to CREATE_PASSKEY_BLOB (passkey-first). |
 | `FIAT_PURCHASE` | UI | FiatStubScreen (B1 stub) |
 | `CRYPTO_PURCHASE` | UI | CryptoStubScreen: 'Crypto purchase is not available yet; buy with a card.' (no call) |
 | `TRY_UNLOCK` | action | Entered only from a tap; PowchData.unlockWithOptions(options) with the prefetched options (get() is the first await); on success → CHECK_EMAIL_CARD; on error → UNLOCK_FAILED |
-| `UNLOCK_FAILED` | UI | UnlockFailedView — the browser's own error; Try again (RETRY, disabled until fresh sign-in options load), Create New Account or Back. CREATE (disabled until registration options load) → CREATE_PASSKEY_BLOB |
-| `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (createOnTap: the registration options prefetched on screen entry; create() is the first await; not ready → fails loud, no refetch) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK. Entered in a framed document → throws naming the routing defect (no create() call); any create() failure → CREATE_FAILED |
-| `CREATE_AT_TOP_LEVEL` | UI | ContinueOnPowchView — New account in a frame under a cross-origin host opened this Powch page at the top level in a new window (`core/topLevelCreate.js` `openTopLevelCreate`, from the tap itself); this screen waits. TOP_LEVEL_CREATED carries the window's DeSciX session (and credential id): stored in this document's App Shell (`ctx.adoptSessionInfo`, `core/shellSession.js`: `loginWithSessionToken` + LOGIN_SUCCESS) → FINISH, which answers the host's request with it (no further tap; the vault here stays locked until a sign-in tap). TOP_LEVEL_FAILED (the window's reason; it stays open), TOP_LEVEL_CLOSED, a CREATED report without a session and a refused open are shown; CONTINUE_ON_POWCH opens the window again. |
-| `CREATE_ON_POWCH` | UI | CreateOnPowchView, in the Continue-on-Powch window only: the create step (the user chose New account in the frame). CREATE → CREATE_PASSKEY_BLOB; the account then registers through SUBMIT_TOS → FINISH, and the window hands the session to the frame (`reportCreated`) and closes. CREATE_FAILED there reports its error (`reportFailed`), offers no sign-in, and BACK returns here. No Powch opener: a plain account creation, which says so. |
+| `UNLOCK_FAILED` | UI | UnlockFailedView — the browser's own error, except a get() that returned no PRF output (`PasskeyNoWalletKeyError`), titled "This passkey cannot unlock a wallet" with the specific message; Try again (RETRY, disabled until fresh sign-in options load), Create New Account or Back. CREATE (disabled until registration options load) → as PROMPT_TYPE NEW |
+| `CREATE_PASSKEY_BLOB` | action | PowchData.createPasskeyBlob with `deferWalletRegistration: true` (createOnTap: the registration options prefetched on screen entry; create() is the first await; not ready → fails loud, no refetch) — the derived wallet pair is stashed on `ctrl.data.pendingWallet`, NOT sent to the backend. On success for new-user path → COLLECT_EMAIL_TOS_PK. Entered in a framed document → throws naming the routing defect (no create() call); create() reported PRF but no output and the `get()` that asks the new passkey for it needs a new tap (`PasskeyPrfConfirmationNeededError`) → CONFIRM_PASSKEY_PRF; the passkey provider returned no PRF output (`PasskeyProviderRefusedError`, thrown before `powch_register_finish`) → PASSKEY_PROVIDER_REFUSED; any other failure → CREATE_FAILED |
+| `CONFIRM_PASSKEY_PRF` | UI | ConfirmPasskeyPrfView — "Confirm your passkey once more to finish". CONFIRM → CONFIRM_PASSKEY_PRF_RUN; BACK → PROMPT_TYPE (CREATE_ON_POWCH in the Powch window). Nothing is registered yet. |
+| `CONFIRM_PASSKEY_PRF_RUN` | action | `PowchData.confirmPasskeyPrfAndFinishCreate(pending)`: `get()` against the new passkey is the first await; its PRF output finishes the account → COLLECT_EMAIL_TOS_PK. No output → PASSKEY_PROVIDER_REFUSED; another failure → CONFIRM_PASSKEY_PRF with the browser's error. |
+| `PASSKEY_PROVIDER_REFUSED` | UI | PasskeyProviderRefusedView — titled with the provider named from the refused passkey's AAGUID ("Chrome on Mac cannot protect a wallet"; an unknown AAGUID reads "Your passkey provider cannot protect a wallet" and shows the AAGUID): the measured reason (`prf-not-supported` or `prf-no-output`), the providers that can, nothing registered. CREATE_ANOTHER_WAY (disabled until fresh registration options load) → CREATE_PASSKEY_BLOB, with every refused credential id in `excludeCredentials` (createOnTap reads `ctrl.data.refusedCredentialIds`); BACK → PROMPT_TYPE, or CREATE_ON_POWCH in the Powch window, whose frame is not told of the refusal and keeps waiting. |
+| `CREATE_AT_TOP_LEVEL` | UI | ContinueOnPowchView — New account in a frame under a cross-origin host opened this Powch page at the top level in a new window (`core/topLevelCreate.js` `openTopLevelCreate`, from the tap itself); this screen waits. TOP_LEVEL_CREATED carries the window's DeSciX session (and credential id): stored in this document's App Shell (`ctx.adoptSessionInfo`, `core/shellSession.js`: `loginWithSessionToken` + LOGIN_SUCCESS) → FINISH, which answers the host's request with it (no further tap; the vault here stays locked until a sign-in tap: the stored credential id makes the sidebar's lock screen read Unlock Vault, whose tap is that sign-in, CHECK_SESSION `signInOptions`). TOP_LEVEL_FAILED (the window's reason; it stays open), TOP_LEVEL_CLOSED, a CREATED report without a session and a refused open are shown; CONTINUE_ON_POWCH opens the window again. |
+| `CREATE_ON_POWCH` | UI | CreateOnPowchView, the create screen, always at the top level: the top-level Powch page after NEW, or the Continue-on-Powch window (the user chose New account in the frame). It shows the backed-up-provider warning for this browser (`core/passkeyProviderCopy.js` `backedUpProviderWarning`, from the user agent and platform; a browser it cannot name gets the generic text) with an "I've read this" box: READ_BACKUP_WARNING `{ read }` sets `ctrl.data.backupWarningRead`, and Create your passkey is disabled, and CREATE refused by name, until it is ticked. CREATE → CREATE_PASSKEY_BLOB; in the Continue-on-Powch window the account then registers through SUBMIT_TOS → FINISH, and the window hands the session to the frame (`reportCreated`) and closes. CREATE_FAILED there reports its error (`reportFailed`), offers no sign-in, and BACK returns here. No Powch opener: a plain account creation, which says so. |
 | `CHECK_EMAIL_CARD` | action | Returning-user branch: if identity card exists → CONSENT_GATE; else fallback to → COLLECT_EMAIL_TOS_PK |
 | `COLLECT_EMAIL_TOS_PK` | UI | CollectEmailTosPkView — consolidated email + TOS. **Collect-only (no network):** stashes the payload on `ctrl.data.pendingTos` → CONSENT_GATE. |
 | `CONSENT_GATE` | action | Decides the host-page share only. No PII requested → `consentedFields=[]` and continue; requested + `hasConsent(origin, require)` → silent continue; else → SHOW_CONSENT_UI. Continuation is SUBMIT_TOS when `pendingTos` exists, else ACQUIRE_ENTITLEMENT_CHOICE (new onboarding) / FINISH. |
-| `SUBMIT_TOS` | action | Account commit, independent of `consentedFields` (eabadir/Unkamon#68): `register_powch_wallet_address` with the master wallet address + signature (this session's pair, else re-derived from the held cloudKey), then `descix_accept_tos` with the verified email (any-token gate runs server-side). A missing verified email or master wallet rejects with that reason before any write. Gate PASS: MASTER_ID card + vault persist (local), → ACQUIRE_ENTITLEMENT_CHOICE / FINISH. Gate FAIL: reject — user stays NOT_AUTHENTICATED. |
+| `SUBMIT_TOS` | action | Account commit, independent of `consentedFields` (accepting the DeSciX ToS is the user's consent for DeSciX to hold the account): `register_powch_wallet_address` with the master wallet address + signature (this session's pair, else re-derived from the held cloudKey), then `descix_accept_tos` with the verified email (any-token gate runs server-side). A missing verified email or master wallet rejects with that reason before any write. Gate PASS: MASTER_ID card + vault persist (local), → ACQUIRE_ENTITLEMENT_CHOICE / FINISH. Gate FAIL: reject — user stays NOT_AUTHENTICATED. |
 | `SHOW_CONSENT_UI` | UI | ConsentView — approve or deny |
 | `FINISH` | action | Result filtered by consented fields via canonical `ConsentRules` matchers; completeRequestInternal(result); resolve(result) |
 
@@ -102,14 +105,16 @@ stateDiagram-v2
 | Event | Source | Effect |
 |-------|--------|--------|
 | `RETURNING` | PowchMainView | → TRY_UNLOCK |
-| `NEW` | PowchMainView | → AIRDROP_ONBOARDING_CHOICE (prefetch registration options) |
+| `NEW` | PowchMainView | top level → CREATE_ON_POWCH; a frame under a cross-origin host → opens the Powch window, CREATE_AT_TOP_LEVEL |
 | `AIRDROP` | OnboardingEntryChoice | → CREATE_PASSKEY_BLOB |
 | `FIAT` | OnboardingEntryChoice | → FIAT_PURCHASE |
 | `CRYPTO` | OnboardingEntryChoice | → CRYPTO_PURCHASE |
 | `SKIP` | OnboardingEntryChoice (DEV) | → CREATE_PASSKEY_BLOB |
 | `CANCEL` | OnboardingEntryChoice | → PROMPT_TYPE |
 | `RETRY` | UnlockFailedView | → TRY_UNLOCK |
-| `CREATE` | UnlockFailedView | → CREATE_PASSKEY_BLOB (with prefetch) |
+| `CREATE` | UnlockFailedView | → as `NEW` |
+| `READ_BACKUP_WARNING` | CreateOnPowchView | `{ read }` → `ctrl.data.backupWarningRead`; re-render |
+| `CREATE` | CreateOnPowchView | → CREATE_PASSKEY_BLOB once the warning is marked read; before that, throws |
 | `BACK` | UnlockFailedView | → PROMPT_TYPE |
 | `SUCCESS` | CollectEmailTosPkView | Stash payload (email, tosAccepted) on `ctrl.data.pendingTos` — NO network call — → CONSENT_GATE. The server commit happens in SUBMIT_TOS after consent resolves. |
 | `APPROVE` | ConsentView | Persist consent via setSiteSettings if rememberChoice → SUBMIT_TOS (pendingTos) / ACQUIRE_ENTITLEMENT_CHOICE / FINISH |
@@ -283,18 +288,21 @@ Import flow creates CRYPTO_WALLET cards and persists them in one write from the 
 
 ---
 
-## ExportPaperBackupFlowController
+## PrintWalletFlowController
 
-**Location:** Powch's React layer, `ExportPaperBackupFlowController` module
+**Location:** Powch's React layer, `PrintWalletFlowController` module
 
-Handles exporting the recovery phrase (CloudKey as BIP-39 mnemonic). Triggers biometric via **PowchData.exportPaperBackup(options)**; SHOW_EXPORT_UI prefetches the vault-write options and its buttons wait for them. Entry points: hamburger "Export Paper Backup", and inline in WalletManagerView Security tab.
+"Print my wallet": the wallet sheet (the 24 words and the master private key as hex) in mode `review`, behind a passkey tap (**PowchData.printWalletSheet(options)**, get() first). Entry points: Portfolio, the menu, and Wallet Manager's Security tab (`openPrintWallet()`). Stores nothing on the server.
 
-**Props (ExportPaperBackupFlowProps):** Use `ExportPaperBackupFlowProps.standard()` for internal calls; no host invocation.
+**Props (PrintWalletFlowProps):** Use `PrintWalletFlowProps.standard()`; no host invocation.
 
 ### State Machine
 
-- `SHOW_EXPORT_UI` (UI): Prompt or mnemonic display; events: REQUEST_EXPORT, RETRY, DONE
-- `EXECUTE_EXPORT` (action): exportOnTap — PowchData.exportPaperBackup(options) with the prefetched options, get() first; on success store mnemonic and return to SHOW_EXPORT_UI
+The one state comes from `flows/printWalletStep.js`, shared with AuthFlow's mandatory step:
+
+- `START` (action): `PRINT_WALLET` at the top level; `PRINT_WALLET_AT_TOP_LEVEL` in a frame under a cross-origin host
+- `PRINT_WALLET` (UI, PrintWalletView): events REVEAL (the tap; vault-write options prefetched on entry), MARK_PRINTED { confirmed }, CONTINUE (refused until "I have printed or written it down" is ticked; resolves), CANCEL (rejects)
+- `PRINT_WALLET_AT_TOP_LEVEL` (UI, ContinueOnPowchView purpose review): CONTINUE_ON_POWCH opens the top-level Powch window with `powch_sheet=review`; TOP_LEVEL_CREATED stores the window's session and resolves; BACK rejects
 
 ---
 

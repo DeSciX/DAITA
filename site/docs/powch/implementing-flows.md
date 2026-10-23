@@ -46,7 +46,7 @@ Flow controllers receive a `context` object from FlowRunner:
 | `wallet` | Current wallet projection |
 | `credentialId`, `hasCredential` | Passkey state |
 
-Flows call **PowchData** directly for persistence: `PowchData.saveCards(cards, options)`, `PowchData.exportPaperBackup(options)`, etc. — passkey taps take options from ceremonyOptions.js, fetched before the tap No separate auth service in context.
+Flows call **PowchData** directly for persistence: `PowchData.saveCards(cards, options)`, `PowchData.printWalletSheet(options)`, etc. — passkey taps take options from ceremonyOptions.js, fetched before the tap No separate auth service in context.
 
 ---
 
@@ -80,7 +80,7 @@ Each flow that needs structured input defines a Props class with static factory 
 | AuthFlowController | AuthFlowProps | `login(opts)` |
 | WalletConnectFlowController | WalletConnectFlowProps | `addWallet()`, `connect(opts)`, `sign(opts)`, `selectOnly(opts)` |
 | ImportFlowController | ImportFlowProps | `standard()`, `fromKey(opts)` |
-| ExportPaperBackupFlowController | ExportPaperBackupFlowProps | `standard()` |
+| PrintWalletFlowController | PrintWalletFlowProps | `standard()` |
 
 ### Usage
 
@@ -240,7 +240,7 @@ WalletConnectFlowController dispatches ImportFlowController when the user select
 |------------|-----------|
 | **Host command** | `POWCH_*` postMessage → FlowRegistry → `runFlow(FlowRegistry.POWCH_X, payload, deps)` |
 | **View event** | `PowchData.emitViewEvent(OPEN_X)` → view event handler → `runFlow(...)` |
-| **Context action** | `openExportPaperBackup()` → emit view event → runFlow |
+| **Context action** | `openPrintWallet()` → emit view event → runFlow |
 | **Sub-flow** | `ctrl.context.dispatchFlow(ChildFlow, opts)` from parent action |
 
 ---
@@ -250,31 +250,13 @@ WalletConnectFlowController dispatches ImportFlowController when the user select
 | Flow | Purpose | Entry Points |
 |------|---------|--------------|
 | **ImportFlowController** | Import private key; creates CRYPTO_WALLET card | Hamburger "New Wallet" (via WalletConnect), WalletConnect dropdown "Import from backup" |
-| **ExportPaperBackupFlowController** | Export recovery phrase (CloudKey as mnemonic) | Hamburger "Export Paper Backup", WalletManagerView (inline) |
+| **PrintWalletFlowController** | The wallet sheet: 24 words + master private key hex (review) | Portfolio, menu and Wallet Manager "Print my wallet" |
 | **WalletConnectFlowController** | Select/create/import wallet; optional sign | Hamburger "New Wallet", Cards home Wallets plus, SignFlow sub-flow |
 | **AuthFlowController** | Login/register; passkey, email, consent | Host POWCH_LOGIN, openUi |
 
 ---
 
-## 8. Optional: Offer Export After Wallet Creation
-
-To offer export paper backup after every wallet creation or import (including master wallet), add a step that dispatches ExportPaperBackupFlowController:
-
-```javascript
-// After saveCard in PROCESS_CONFIRMATION or after CREATE_PASSKEY_BLOB
-try {
-  await ctrl.context.dispatchFlow(ExportPaperBackupFlowController, ExportPaperBackupFlowProps.standard());
-} catch {
-  // User cancelled — parent still resolves
-}
-return ctrl.resolve(result);
-```
-
-Alternatively, add an intermediate UI step that asks "Export paper backup now?" and only dispatch if the user confirms.
-
----
-
-## 9. Related Documentation
+## 8. Related Documentation
 
 | Document | Description |
 |----------|-------------|

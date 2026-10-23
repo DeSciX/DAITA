@@ -16,7 +16,7 @@ This document specifies the **Cloud Vault + Deterministic CloudKey** model. Clou
 - **Zero-Knowledge:** Server stores only ciphertext; decryption keys remain client- and hardware-bound.
 - **Same consumer API:** PowchData remains the single entry point; flows call `unlockWithOptions()`, `createPasskeyBlobWithCachedOptions()`, `saveCards()` / `saveCard()` only, each with options fetched before the tap.
 - **Onboarding order:** First-time user: (a) passkey created, (b) CloudKey derived from PRF + credentialId, (c) email verified (DeSciX master ID), (d) vault encrypted and stored in cloud, (e) session token in localStorage.
-- **Downstream:** Enable client-side paper backup (export decrypted sensitive data) and server-side deauthorization (revoke vault access).
+- **Downstream:** Enable the client-side wallet sheet (the master key printed for cold storage) and server-side deauthorization (revoke vault access).
 
 ### 1.2 Architectural Invariants (Unchanged)
 
@@ -104,12 +104,11 @@ Tier 1 fields are still encrypted with PRF-derived key inside the vault before t
 
 ## 4. Downstream Capabilities
 
-### 4.1 Paper Backup (Cold Storage)
+### 4.1 The wallet sheet (Cold Storage)
 
-- **Intent:** User can export CloudKey (derived from PRF) as a BIP-39 mnemonic for cold storage. If all passkeys are lost, the mnemonic restores the master wallet.
-- **Implementation:** `PowchData.exportPaperBackup(options)` triggers a biometric ceremony (its first await, on the tap), derives CloudKey from PRF + credentialId, converts to 24-word mnemonic via `cloudKeyToMnemonic()`.
-- **Placement:** WalletManagerView "View Recovery Phrase" button. Confirmation checkbox before reveal.
-- **Security:** Extra biometric step inside `exportPaperBackup()` (via `getPrfForExport(options)`).
+- **Intent:** the user keeps the 24 words (`cloudKeyToMnemonic`, Powch's encoding: not a standard wallet seed) and the master private key as hex, which any EVM wallet imports to reach the master address's funds (funds-only recovery: the account, vault and credits stay with the lost passkey).
+- **Implementation:** client-core `recoverySheetFromCloudKey(cloudKey)`. Right after create, `PowchData.heldWalletSheet()` reads the CloudKey this document holds (no tap); later, `PowchData.printWalletSheet(options)` runs a biometric ceremony (its first await, on the tap) via `getPrfForExport(options)`.
+- **Placement:** AuthFlow `PRINT_WALLET` after the passkey is created and before the email step (mandatory), and at sign-in when the account has no `recovery_confirmed_at`; "Print my wallet" (`PrintWalletFlowController`) in Portfolio, the menu and Wallet Manager. A print stylesheet prints the sheet alone; no Copy button. Never rendered in a frame under a host page: from the Powch panel on a site, the demand and "Print my wallet" run in the top-level Powch window (`PRINT_WALLET_AT_TOP_LEVEL`, `PowchData.unlockForWalletSheet` there).
 
 ### 4.2 Deauthorization (Stolen Device)
 
@@ -230,4 +229,4 @@ sequenceDiagram
 - **Vault** is stored in the cloud as an encrypted blob. No largeBlob; CloudKey derived from PRF + credentialId on each ceremony.
 - **Onboarding:** createPasskeyBlobWithCachedOptions → COLLECT_EMAIL → saveCard(emailCard) triggers first vault upload.
 - **Read/Write** semantics of PowchData (unlock, saveCard) are unchanged for consumers.
-- **Downstream:** Paper backup via cloudKeyToMnemonic; deauthorization via backend revoke and vault_get enforcement.
+- **Downstream:** the wallet sheet via recoverySheetFromCloudKey; deauthorization via backend revoke and vault_get enforcement.

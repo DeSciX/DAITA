@@ -92,7 +92,7 @@ PowchData emits events that PowchAppProvider consumes via `appEvent` and `viewEv
 
 ## SyncManager
 
-The SyncManager is a class instantiated as `PowchData.sync`. Its ceremonies take options fetched before the tap and run the WebAuthn call as their first await: **readWithOptions(options)** (WebAuthn get + PRF; fetch vault from cloud, decrypt with CloudKey; returns `{ blob | null, prfKey, credentialId }`), **createCredentialWithCachedOptions(options, data)** (WebAuthn create for new passkeys; derives CloudKey from PRF + credentialId; returns `{ prfKey, credentialId, cloudKey, walletAddress }`), **writeToEnclave(vault, credentialId, options)** (WebAuthn get + PRF; encrypt vault with CloudKey, putVault to cloud) and **getPrfForExport(options)** (paper backup). PowchData calls these; flows never call SyncManager directly. For full ceremony and flow detail, see [architecture.md](./architecture.md).
+The SyncManager is a class instantiated as `PowchData.sync`. Its ceremonies take options fetched before the tap and run the WebAuthn call as their first await: **readWithOptions(options)** (WebAuthn get + PRF; fetch vault from cloud, decrypt with CloudKey; returns `{ blob | null, prfKey, credentialId, recoveryConfirmedAt }`), **createCredentialWithCachedOptions(options, data)** (WebAuthn create for new passkeys; derives CloudKey from PRF + credentialId; returns `{ prfKey, credentialId, cloudKey, walletAddress }`), **writeToEnclave(vault, credentialId, options)** (WebAuthn get + PRF; encrypt vault with CloudKey, putVault to cloud) and **getPrfForExport(options)** (the wallet sheet). PowchData calls these; flows never call SyncManager directly. For full ceremony and flow detail, see [architecture.md](./architecture.md).
 
 ### CeremonyProvider Injection
 
@@ -130,7 +130,7 @@ PowchData.sync.clearVaultTimeout();
 
 When the timeout fires, it calls `PowchData.lock()`, which emits `PowchAppEvent.VAULT_LOCKED` once. The shell session is not touched.
 
-SyncManager is used by PowchData for all enclave I/O: unlock uses `readWithOptions()`, new users use `createCredentialWithCachedOptions()`, card writes use `writeToEnclave()` and the paper backup uses `getPrfForExport()`, each with options fetched before the tap. See [architecture.md](./architecture.md) and [data-security-architecture.md](./data-security-architecture.md) §5.
+SyncManager is used by PowchData for all enclave I/O: unlock uses `readWithOptions()`, new users use `createCredentialWithCachedOptions()`, card writes use `writeToEnclave()` and the wallet sheet uses `getPrfForExport()`, each with options fetched before the tap. See [architecture.md](./architecture.md) and [data-security-architecture.md](./data-security-architecture.md) §5.
 
 **completeAuth(result)** (PowchData): Sets credentialId if provided, updates appState, clears flowData and error.
 

@@ -62,10 +62,11 @@ No additional derivation. The wallet address is `wallet.address`; signing uses `
 **Location**: client-core `PowchData` — SyncManager class.
 
 1. WebAuthn create ceremony (attestation + PRF)
-2. Derive CloudKey from PRF + credentialId
-3. Create wallet: `new ethers.Wallet(ethers.hexlify(cloudKey))`
-4. If `signatureMessage` provided: sign with wallet
-5. Call `finishRegistration({ attestation, walletAddress, walletSignature })`
+2. Read the PRF output (client-core `registrationPrf` — `classifyRegistrationPrf`); see "Passkey providers without PRF" for the four shapes. A refusal throws `PasskeyProviderRefusedError` (carrying the passkey's AAGUID) before `finishRegistration`: nothing is registered
+3. Derive CloudKey from PRF + credentialId
+4. Create wallet: `new ethers.Wallet(ethers.hexlify(cloudKey))`
+5. If `signatureMessage` provided: sign with wallet
+6. Call `finishRegistration({ attestation, walletAddress, walletSignature })`
 
 The CeremonyProvider's `finishRegistration` invokes `powch_register_finish` on the backend. The backend receives wallet params **atomically** with the attestation; no second ceremony.
 
@@ -73,6 +74,7 @@ The CeremonyProvider's `finishRegistration` invokes `powch_register_finish` on t
 
 `powch_register_finish`:
 
+- Refuses a passkey that reported no PRF (server-core `assertRegistrationHasPrf`: neither `prf.enabled === true` nor a PRF output) with `PrfRequiredError`, before verifying the attestation: no User document, no session
 - Verifies attestation (zero-knowledge)
 - Get-or-creates User by credentialId
 - Stores wallet_address and signature on the user document
@@ -85,6 +87,27 @@ The CeremonyProvider's `finishRegistration` invokes `powch_register_finish` on t
 - Calls `SyncManager.createCredentialWithCachedOptions(options, registrationData)` with options prefetched before the tap
 - Stores `_cloudKey`, `_prfKey`, empty vault
 - No cloud vault write until email verified (see Vault Persistence below)
+
+### Passkey providers without PRF
+
+The decision is the PRESENCE of `prf.results.first` (32 bytes, `registrationPrf.prfFirst`), never the browser or device, and never `prf.enabled` alone: a successful get() reports `enabled: null` with a 32-byte `first` (Apple Passwords), so `enabled` is read only at create(), only when `first` is absent.
+
+| create() PRF result (shape) | Outcome |
+|---|---|
+| `results.first` present (output-returned) | registration proceeds |
+| `enabled: true`, no `results.first` (enabled-no-output) | not a refusal: a `get()` with the same PRF eval against the new credential only (local challenge; nothing is registered yet) supplies the output. If the browser needs a new tap for it, ConfirmPasskeyPrfView ("Confirm your passkey once more to finish") runs that `get()` as the tap's first await. A `get()` with no output either: refused, reason `prf-no-output` |
+| `enabled: false` (not-enabled) | refused: reason `prf-not-supported` |
+| no `prf` result (prf-absent) | refused: reason `prf-not-supported` |
+
+Chrome's older local authenticator ("Chrome on Mac", AAGUID `adce0002-35bc-c60a-648b-0b25f1f05503`) reports `enabled: false` at create() and returns no output at get(): it is refused, and a further get() would not help.
+
+A refused passkey stays in the provider that saved it, unregistered and holding no wallet. The provider is read from the AAGUID in the attestationObject's authenticator data (only create() carries it) and named from Powch's AAGUID table. PasskeyProviderRefusedView (titled with the provider name, e.g. "Chrome on Mac cannot protect a wallet"; an unknown AAGUID reads "Your passkey provider cannot protect a wallet" and shows the AAGUID) states the reason, lists the providers that can (Apple Passwords on Apple devices; Google Password Manager on Android; a syncing password manager with PRF support, such as 1Password or Bitwarden), and offers "Create the passkey another way": a new create() with every passkey this flow refused in `excludeCredentials`, so the provider holding it is not offered again silently.
+
+Before the passkey sheet, the create screen (CreateOnPowchView, at the top level) states where this browser should save the passkey so it is backed up and synced (iCloud Keychain in Safari; Google Password Manager or Apple Passwords, never the Chrome profile, in Chrome on macOS; Google Password Manager in Chrome on Android or Windows and Edge on Android; Microsoft Password Manager in Edge on Windows; a syncing password manager otherwise), and Create your passkey stays disabled until its "I've read this" box is ticked.
+
+### Sign-in, vault write and the wallet sheet with no PRF output
+
+Every get() that needs the wallet key (SyncManager `readWithOptions`, `writeToEnclave`, `getPrfForExport`) reads the output with `registrationPrf.assertionPrfOutput`, before `powch_login_finish`. No `results.first` throws `PasskeyNoWalletKeyError`: no session is issued, and the screen shows "This passkey's provider returned no wallet key material. Sign in with the passkey you created with a backed-up provider, or create a new account." (UnlockFailedView titles it "This passkey cannot unlock a wallet"). This is what a passkey registered before the registration PRF gate in a provider without PRF (Chrome on Mac) meets at sign-in.
 
 ---
 

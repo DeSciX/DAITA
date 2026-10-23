@@ -78,7 +78,7 @@ The controller architecture enforces the visibility lock by design. A flow can o
 
 ## 5. Flow Controllers (As-Built)
 
-The flow controllers live in Powch's React layer, and each extends `BaseFlowController`: `AuthFlowController`, `SignFlowController`, `WalletConnectFlowController`, `ImportFlowController`, `PaymentFlowController`, `ClaimFlowController`, `ExportPaperBackupFlowController`, `WalletManagerFlowController`, `CardTransferController`, `OfferAcceptController` and `SwapController`.
+The flow controllers live in Powch's React layer, and each extends `BaseFlowController`: `AuthFlowController`, `SignFlowController`, `WalletConnectFlowController`, `ImportFlowController`, `PaymentFlowController`, `ClaimFlowController`, `PrintWalletFlowController`, `WalletManagerFlowController`, `CardTransferController`, `OfferAcceptController` and `SwapController`.
 
 ### 5.1 Import Flow (As-Built)
 **ImportFlowController**: Trigger `POWCH_IMPORT_KEY`. Flow creates CRYPTO_WALLET cards and persists them from the vault-save tap step (VAULT_SAVE_PROMPT → VAULT_SAVE_ON_TAP, one **PowchData.saveCards** write); no addKeyToSession or saveSession(pendingKey). See [data-security-architecture.md](../data-security-architecture.md).
