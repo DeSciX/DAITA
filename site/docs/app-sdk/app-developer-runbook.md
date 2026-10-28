@@ -1222,6 +1222,39 @@ npx -y -p @descix/cli@4.3.1 descix tell-me-how "how do I deploy my site"
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
 page, is the whole handbook; when neither answers, apply the wall rule at the top of this page.
 
+### 9.1 Media files
+
+Media files (images, audio, video, data, scripts your pages load at runtime) are not part of the
+site bundle. Upload them with `app media-upload`:
+
+```bash
+npx -y -p @descix/cli@4.3.1 descix app media-upload -a <app_id> -f cover.png --prefix shows
+# ✅ Uploaded 1 asset(s).
+#     shows/cover.png
+#       public_url: https://<app_id>.descix.net/assets/shows/cover.png
+#
+#   Storage: 0.0 MB / 200.0 MB used
+```
+
+- **Path.** Each file goes to `{env}/<app_id>/assets/<--prefix/>basename`: its basename, under
+  the `--prefix` folder if you give one. `--json` prints the same references for scripts.
+- **Content type** comes from the file extension: `.png` → `image/png`, `.json` →
+  `application/json`, `.js` and `.mjs` → `text/javascript`; an extension the CLI does not know
+  goes up as `application/octet-stream`.
+- **URL.** Use the `public_url` the receipt prints, `https://<app_id>.descix.net/assets/<path>`.
+  It serves only on your app's own host: the same path on `descix.net` or on another app's host
+  is a 404. Responses carry `access-control-allow-origin: *`, so your pages framed by the store
+  shell at `https://descix.net/` load it cross-origin.
+- **Caching.** Every media file is served `public, max-age=3600`, and re-uploading the same path
+  does not clear the edge: a replaced file can be up to an hour stale at the edge and another hour
+  in a browser. Give anything that changes a new name.
+- **Listing and deleting.** No verb lists or deletes media. To enumerate your files, publish your
+  own index file (for example a JSON list of paths, uploaded beside them).
+- **Quota.** Your app has 200 MB. Every object you upload counts against it until a platform
+  admin removes it; re-uploading a path replaces that path's size rather than adding to it.
+- **Locally.** `descix serve` has no `/assets` route. The absolute `public_url` works unchanged
+  from `https://localhost:<Port>/` and reads the deployed objects.
+
 ## 10. The whole path in eleven commands
 
 ```bash
