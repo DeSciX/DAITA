@@ -29,14 +29,14 @@ Every quoted output below is what the CLI printed on a real run against the refe
 Run the published CLI with the package name spelled out and the version pinned:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix <command>
+npx -y -p @descix/cli@4.4.0 descix <command>
 ```
 
 - Plain `npx descix` fails — the package is `@descix/cli`, not `descix`.
 - Bare `npx @descix/cli` stops with `could not determine executable to run`, because the
   package ships two executables (`descix` and `descix-mcp`).
 - To shorten every later command, pin the CLI in your repo's `package.json`
-  (`"devDependencies": { "@descix/cli": "4.3.1" }`), run `npm install` once, and then
+  (`"devDependencies": { "@descix/cli": "4.4.0" }`), run `npm install` once, and then
   `npx descix <command>` runs the pinned copy. The long form is used throughout this page so
   that every command works in a bare clone.
 - Read a command's flags from the CLI itself: `descix <group> <command> --help` prints that
@@ -44,12 +44,12 @@ npx -y -p @descix/cli@4.3.1 descix <command>
   commands that do: `error: unknown command 'uplod'` then `'descix site' has: delete, init,
   list, status, upload`.
 
-**Verify:** `npx -y -p @descix/cli@4.3.1 descix --version` prints `4.3.1`.
+**Verify:** `npx -y -p @descix/cli@4.4.0 descix --version` prints `4.4.0`.
 
-`@descix/app-sdk` 0.8.0 is the library your site code imports. Its entry points are
+`@descix/app-sdk` 0.9.0 is the library your site code imports. Its entry points are
 `@descix/app-sdk` (the React components, among them `AppShell`, `AppProvider`, `PowchClient`,
 `VIEW_MODES` and `requestView`), `@descix/app-sdk/AppShell`, `@descix/app-sdk/AppData`,
-`@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/chat-context`,
+`@descix/app-sdk/powch-client`, `@descix/app-sdk/share` (§7.3), `@descix/app-sdk/share-link` (§5.5), `@descix/app-sdk/chat-context`,
 `@descix/app-sdk/pending-intent`, `@descix/app-sdk/dev` and `@descix/app-sdk/scaffold`; its peer dependencies are `react` and `react-dom` `^18.0.0 || ^19.0.0`.
 A plain HTML site uses the `DeSciXAppSDK.js` script that `descix site init` copies in (§5.2)
 instead.
@@ -65,7 +65,7 @@ workspace as the source instead of a default:
 
 ```bash
 cd <your app repo>
-npx -y -p @descix/cli@4.3.1 descix config init --env prod
+npx -y -p @descix/cli@4.4.0 descix config init --env prod
 ```
 
 ```
@@ -85,7 +85,7 @@ source; `descix config show` also prints a ⚠ line when the variable overrides 
 Now sign in:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix login
+npx -y -p @descix/cli@4.4.0 descix login
 ```
 
 `descix login` is a device-code flow: the CLI requests a code, opens your browser at
@@ -126,7 +126,7 @@ passkey in the browser's chooser.
 shell before any command that changes anything:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix whoami
+npx -y -p @descix/cli@4.4.0 descix whoami
 ```
 
 ```
@@ -146,7 +146,7 @@ root. Run `app init` **from the repo root**, in a checkout that is not inside an
 ### An app that already exists (the usual clone path)
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app init -a <app_id>
+npx -y -p @descix/cli@4.4.0 descix app init -a <app_id>
 ```
 
 Omit `-c`: without it, `app init` initializes an app that already exists on the platform, and
@@ -170,7 +170,7 @@ placeholders, delete them and check `git status --short` is clean.
 ### A new app
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app init -a <name> -c <community>
+npx -y -p @descix/cli@4.4.0 descix app init -a <name> -c <community>
 ```
 
 With `-c`, `-a` is the app **name** and the platform composes the id as `<community>-<name>`
@@ -389,7 +389,7 @@ First declare how your site is served. One write sets one mode, and each write c
 mode's fields:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static site
+npx -y -p @descix/cli@4.4.0 descix app set-site -a <app_id> --static site
 ```
 
 ```
@@ -414,7 +414,7 @@ npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static site
 Then, from the repo root or any directory below it:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix serve
+npx -y -p @descix/cli@4.4.0 descix serve
 ```
 
 `descix serve` walks up from the current directory to the nearest `.descix/workspace.json`, reads
@@ -476,8 +476,8 @@ inside the shell with sign-in, point THIS app's static route at them for the ses
 the tracked config back. From the app's own checkout, with the scratch directory beside it:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static ../<dir>
-npx -y -p @descix/cli@4.3.1 descix serve
+npx -y -p @descix/cli@4.4.0 descix app set-site -a <app_id> --static ../<dir>
+npx -y -p @descix/cli@4.4.0 descix serve
 ```
 
 Open the root, `https://localhost:<Port>/`. Verify the route reads the scratch directory:
@@ -611,7 +611,7 @@ curl -s https://egpt.descix.net/ | grep -o 'src="/prod/daita/site/assets/index-[
 curl -s -o /dev/null -w '%{http_code} %{content_type}\n' https://egpt.descix.net/prod/egpt/site/index.html   # 200 text/html
 ```
 
-What crosses between your page and the shell, as built in `@descix/app-sdk` 0.8.0:
+What crosses between your page and the shell, as built in `@descix/app-sdk` 0.9.0:
 
 | Direction | Surface | What it carries |
 |---|---|---|
@@ -640,16 +640,20 @@ which runs each time a context arrives and each time the pane opens with one,
 
 **Your page's own questions.** `DeSciX.call` comes from the `DeSciXAppSDK.js` in your site
 (§5.2). It needs a signed-in user, throws when no shell is above the page, and each call is one
-metered turn on the reader's AI credits:
+metered turn on the reader's AI credits.
+
+`DeSciX.call` resolves with the platform's whole reply, `{ status: 'OK', auth_status, message }`;
+the command's result is `message`. A refusal does not resolve: it throws an `Error` whose `message`
+is the server's text, with the server's code on `error.code` when the reply carries one.
 
 ```js
 const r = await DeSciX.call('ask_question_to_app', {
   app_id: '<app_id>',
   user_input: 'Which sources does this chapter cite for its second claim?',
   knowledgebase_names: ['<kb_name>', '<second_kb_name>'],   // ['*'] searches every KB of the app
-  // previous_interaction_id: r.interaction_id from the last answer, to continue the thread
+  // previous_interaction_id: r.message.interaction_id from the last answer, to continue the thread
 });
-// r.response (the answer), r.sources (its citations), r.interaction_id (the thread)
+// r.message.response (the answer), r.message.sources (its citations), r.message.interaction_id (the thread)
 ```
 
 The first name in `knowledgebase_names` is the primary KB, whose system instructions shape the
@@ -672,16 +676,16 @@ several apps in one reply, on one thread:
 const r = await DeSciX.call('ask_multiple_apps', {
   apps: ['<app_id>', { app_id: '<second_app_id>' }],   // each entry: an app id, or { app_id }
   user_input: 'How do these two apps treat the same claim?',
-  // previous_interaction_id: r.interaction_id from the last answer, to continue the thread
+  // previous_interaction_id: r.message.interaction_id from the last answer, to continue the thread
 });
-// r.response, r.sources, r.interaction_id, r.apps_queried
+// r.message.response, r.message.sources, r.message.interaction_id, r.message.apps_queried
 ```
 
 The first app's default KB (§6.1) supplies the system instructions that shape the reply. The
 signed-in user must hold, for EVERY listed app, an entitlement to that app or to its community;
 the first app without one refuses the whole call with
 `Access denied to app <app_id>: no community entitlement for <community_id>`. The same call from
-the terminal: `npx -y -p @descix/cli@4.3.1 descix chat --apps <app_id>,<second_app_id> "<question>"`.
+the terminal: `npx -y -p @descix/cli@4.4.0 descix chat --apps <app_id>,<second_app_id> "<question>"`.
 
 **What each ask needs.**
 
@@ -692,7 +696,7 @@ the terminal: `npx -y -p @descix/cli@4.3.1 descix chat --apps <app_id>,<second_a
 
 A signed-in user who has accepted the Terms of Service holds the platform's base apps: `daita`,
 `powch`, `egpt`, `egpt-frqtl`, `egpt-godsworld`, `egpt-courantgroup`, `daita-beast` and
-`daita-docs` on PROD. `npx -y -p @descix/cli@4.3.1 descix purchases` lists the communities and
+`daita-docs` on PROD. `npx -y -p @descix/cli@4.4.0 descix purchases` lists the communities and
 apps you hold. When the user has no credits to draw, either command is refused with
 `CREDITS_REQUIRED` before any answer is generated; top up with `descix credits buy` (§6).
 
@@ -750,6 +754,62 @@ host with no shell, `PowchClient` hears only of the sign-ins its own `auth()` re
 reports a sign-in only to the host whose request started it, so a sign-in the user starts inside
 that sidebar is not reported to the host.
 
+### 5.5 Share links and the Share button
+
+A share link is `<page>?ref=<custom_id>`. A user who opens it and signs in becomes the referral of
+the user who minted it, if they have no referrer yet; a user has one referrer, ever. Your page
+mints the link for the signed-in reader with `DeSciX.call`:
+
+```js
+const res = await DeSciX.call('generate_referral_code', {
+  target_type: 'WEB_PAGE',
+  target_identifier: 'https://<app_id>.descix.net/#<section>',   // your app's address, never location.href
+  channel: 'web_share',
+  target_community_id: '<community>',
+});
+const link = res.message.share_url;   // https://<app_id>.descix.net/?ref=shr_<32 hex>#<section>
+```
+
+- `res.message` is `{ custom_id, created, share_url, target_type, target_identifier, channel, status }`
+  (§5.3: `DeSciX.call` resolves with the whole reply).
+- `?ref=` sits before the fragment. A query in `target_identifier` is dropped; the fragment is kept.
+- `target_identifier` is your app's address on the platform domain. Your frame's
+  `location.href` is the raw site file under `/prod/<app_id>/site/`; a link there opens without
+  the shell, and the referral is never claimed.
+- `channel` says how the link travels: `web_share`, `email` for a link in an email, `bot_post`
+  for a bot's post. The server owns the accepted values and names them when it refuses one.
+- The same page, channel and community return the same link, with `created: false`.
+- It needs a signed-in reader. A refusal throws an `Error` whose `code` names it, for example
+  `PROMOTION_TARGET_HOST` for a page off the platform domain.
+- Your page writes no claim code. The shell reads `?ref=` when it loads, removes it from the
+  address bar, holds it in the tab's `sessionStorage` across sign-in, and claims it
+  (`process_deep_link { custom_id }`) once the reader is signed in.
+- The link shows your host's one preview card (§7.3).
+- From the terminal, `npx -y -p @descix/cli@4.4.0 descix referral create --url <page> --channel <channel> -c <community>`
+  prints the same link for the signed-in CLI user.
+- Build tooling and React code import the contract from `@descix/app-sdk/share-link`:
+  `REF_PARAM`, `webPageMintParams`, `requireShareUrl` and the shell's capture and claim functions.
+
+**The Share button.** `navigator.share` and `navigator.clipboard.writeText` work from your framed
+page with no iframe permission, because your page and the shell share an origin (measured on
+PROD in Chrome and in desktop WebKit; iPhone Safari and Firefox are not measured). The shell has no
+share or clipboard method of its own.
+
+```js
+// mint once the reader is signed in (DeSciX.powch.on('auth'), §5.4), before any click
+btn.onclick = async () => {
+  if (navigator.share) {
+    try { await navigator.share({ url: link, title: document.title }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(link); showCopied(); }
+  catch { showLinkForManualCopy(link); }   // a selectable text field
+};
+```
+
+Mint the link before the click, not inside the handler: an `await` before `navigator.share` loses
+the user gesture. `document.execCommand('copy')` returns `false` in WebKit; do not rely on it.
+
 ## 6. Knowledge bases
 
 Each KB is fed from **git**, by a manifest at `.descix/manifests/<kb_name>.json`. `path` is
@@ -783,9 +843,9 @@ Three rules that save you an afternoon:
   line, it is the plan, not an error.
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id> -k General --dry-run
-npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id> -k General
-npx -y -p @descix/cli@4.3.1 descix kb corpus status -a <app_id> -k General
+npx -y -p @descix/cli@4.4.0 descix kb corpus sync -a <app_id> -k General --dry-run
+npx -y -p @descix/cli@4.4.0 descix kb corpus sync -a <app_id> -k General
+npx -y -p @descix/cli@4.4.0 descix kb corpus status -a <app_id> -k General
 ```
 
 The dry-run prints `[source-gate] PASS — all <n> file(s) tracked by git at their manifest ref.`
@@ -849,7 +909,7 @@ Each chunk carries its source's `doc_class`. The full field reference is
 `@descix/cli` 4.1.0 or later:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
+npx -y -p @descix/cli@4.4.0 descix kb create -a <app_id> --kb <kb_name> [--system-instructions <text>]
 ```
 
 It needs the app's owner, or an app, community or platform admin. A KB that already exists is a
@@ -864,7 +924,7 @@ would make it. Only `app init -c`, which creates the app, creates its first KB.
 **Verify** — an answer from your own documents, with the source pinned to the committed blob:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix chat -a <app_id> "<a question only your docs answer>"
+npx -y -p @descix/cli@4.4.0 descix chat -a <app_id> "<a question only your docs answer>"
 git rev-parse main:kb/General/<file>
 ```
 
@@ -875,7 +935,7 @@ The reply's `📚 Sources:` line reads `<file> [ID: corpus:<sha>]`, and `<sha>` 
 to see the raw chunks instead, query the KB:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
+npx -y -p @descix/cli@4.4.0 descix mcp execute --tool query_knowledge_base --params '{"app_id":"<app_id>","kb_id":"<kb_name>","query":"<a phrase from your docs>","limit":5}' --json
 ```
 
 `.message.results` holds the matching chunks; each row's `metadata.blob_sha` is the committed
@@ -891,7 +951,7 @@ default, a pointer the platform holds on the app record (`knowledgebase_name`). 
 community:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
+npx -y -p @descix/cli@4.4.0 descix mcp execute --tool list_apps_for_community --params '{"community_id":"<community>"}' --json
 ```
 
 Each app's entry carries `"knowledgebase_name": "<kb_name>"`; `descix kb list -a <app_id>` lists
@@ -902,7 +962,7 @@ the KBs the app has.
 The app's owner, or an app, community or platform admin, repoints it to a KB the app already has:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
+npx -y -p @descix/cli@4.4.0 descix mcp execute --tool update_app --params '{"app_id":"<app_id>","knowledgebase_name":"<kb_name>"}'
 ```
 
 A KB the app does not have is refused and nothing is written:
@@ -916,7 +976,7 @@ The chat's voice is the default KB's system instructions; the app has no persona
 them. Read them with:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
+npx -y -p @descix/cli@4.4.0 descix mcp execute --tool get_app --params '{"community_id":"<community>","app_id":"<app_id>"}' --json
 ```
 
 `.message.app.default_prompt` is the default KB's system instructions, and
@@ -927,7 +987,7 @@ names a KB the app does not have, `default_prompt` is `null` and `source` is `nu
 defaults to `General` whatever the app's default is. Always pass `-k` with the default KB's name:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app sync-assets -a <app_id> -k <kb_name>
+npx -y -p @descix/cli@4.4.0 descix app sync-assets -a <app_id> -k <kb_name>
 ```
 
 The same command writes `assets/app_description.md` and `assets/icon.png` to the app record.
@@ -1010,8 +1070,62 @@ never breaks the app.
 | `default_view` | no | the view your app starts in, exactly one of `CodeSite`, `SplitView`, `Chat`, `NoChrome` (case-sensitive); any other value is refused by name at upload from `@descix/cli` 4.2.0 |
 
 The top level must be a JSON object. Values are trimmed, so a value of only spaces is empty. Keys
-outside the table are ignored. Neither the CLI nor the edge checks a length, an image size or a
-path shape; card renderers show a 1200×630 `og_image` best.
+outside the table are ignored, except `pages` (below). For these fields neither the CLI nor the edge
+checks a length, an image size or a path shape; card renderers show a 1200×630 `og_image` best.
+
+**The root card.** The fields above are the card of the host root, `https://<app_id>.descix.net/`
+(and of a custom domain mapped to the app), and its `og:url` is always that root. A query or a
+fragment does not change it: `/?ref=<id>` and `/?ref=<id>#letter` get the same card as `/` (crawlers
+never send the fragment).
+
+**A card per view: `pages`.** To give one view of your app its own card, add it to `pages` and link
+to `https://<app_id>.descix.net/<slug>`:
+
+```json
+{
+  "title": "EGPT",
+  "description": "…",
+  "og_image": "images/share/share-1200x630.png",
+  "pages": {
+    "letter": {
+      "title": "A letter from the founder",
+      "description": "Why EGPT, and why now.",
+      "image": "images/letter/card.png",
+      "to": "#letter"
+    }
+  }
+}
+```
+
+A crawler fetching `/letter` reads that entry's card, with `og:url` `https://<app_id>.descix.net/letter`.
+A browser is sent on at once to `to` on the same host with the link's query kept, so
+`/letter?ref=<id>` opens `/?ref=<id>#letter` and the referral is captured as for any link.
+
+| Entry field | Required | Value |
+|---|---|---|
+| slug (the key) | yes | `^[a-z0-9][a-z0-9-]{0,63}$`; not `api`, `apifront`, `mcp`, `oauth`, `assets`, `site`, or an env name (`prod`, `dev`, `demo`, `preview`) |
+| `title` | yes | a non-empty string, at most 200 characters |
+| `description` | yes | a non-empty string, at most 500 characters |
+| `image` | no | a bundle-relative path like `og_image`, at most 512 characters; absent means the root `og_image` |
+| `to` | yes | where the link opens on your host, at most 512 characters: a fragment (`#letter`) or a path starting with one `/` (`/#letter`, `/?view=x#y`); a query in `to` comes first, the link's query after it |
+
+At most 200 entries. Refused: a `to` that is a full URL, starts with `//`, contains a backslash,
+whitespace or a control character, has a `.` or `..` path segment (`/x/../y`, also `%2e`), resolves
+to a path starting with `//`, or points at another page slug (`/letter#x`); an `image` with a
+scheme, `//`, `?`, `#`, a backslash, whitespace, or an empty, `.` or `..` segment. The card's
+`twitter:card` is the root `twitter_card`. **A refused entry is skipped and its path is served as
+if it were not there** (the shell, with the generic head); the other entries and the root card are
+unaffected, and nothing tells the crawler. Check each page after upload (below). A path that is not a
+slug in `pages`, such as `/letter` before you add it, gets the platform's generic head (title `DeSciX`,
+no `og:` tags).
+
+Mint the share link for the page address, so its counts are per view:
+`target_identifier: 'https://<app_id>.descix.net/letter'` gives
+`share_url: 'https://<app_id>.descix.net/letter?ref=<id>'`.
+
+Check a page after upload (the edge reads `share.json` at most 300 seconds old):
+`curl -s https://<app_id>.descix.net/letter?ref=test | grep -E 'og:url|og:title|descix-share-target'` shows
+`content="https://<app_id>.descix.net/letter"`, your title, and `href="https://<app_id>.descix.net/?ref=test#letter"`.
 
 **Starting view.** `default_view` needs `@descix/app-sdk` 0.6.0 / `@descix/cli` 4.2.0 or later.
 On your app's own face, `https://<app_id>.descix.net/`, the shell paints that view first, with no
@@ -1056,6 +1170,8 @@ Nothing was uploaded. Fix share.json, or leave it out of the site, then upload a
 
 A missing required field reads `share.json: title is required (a non-empty string)`; a present
 optional field that is empty reads `share.json: og_image is empty; it must be a non-empty string`.
+The upload gate checks the fields in the table above; it does not check `pages`, which the edge
+checks entry by entry when it serves a page.
 
 **Build tooling imports the contract.** `@descix/app-sdk/share` (app-sdk 0.5.0) exports
 `SHARE_CONTRACT` (the field table above), `parseShareJson(text)`, `validateShareJson(obj)` and
@@ -1074,7 +1190,7 @@ generic head for up to 5 minutes — wait it out; nothing is wrong.
 Always dry-run first and read both lists:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id> --dry-run
+npx -y -p @descix/cli@4.4.0 descix site upload -a <app_id> --dry-run
 ```
 
 ```
@@ -1096,7 +1212,7 @@ every deployed file your build no longer contains — after the real upload, not
 build stays served. The dry run needs a login.
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id>
+npx -y -p @descix/cli@4.4.0 descix site upload -a <app_id>
 ```
 
 The receipt ends with `Site uploaded successfully!`, the file count, the removed paths, and
@@ -1109,7 +1225,7 @@ present before the previous build's directory is pruned — only same-path files
 `index.html`) are overwritten in place during the upload window. Then:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix site status -c <community> -a <app_id>
+npx -y -p @descix/cli@4.4.0 descix site status -c <community> -a <app_id>
 ```
 
 ```
@@ -1201,7 +1317,7 @@ Your app exists and is yours the moment `app init` returns, but it is **unlisted
 you, invisible in the store. The owner lists it:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app set-listed on -c <community> -a <app_id>
+npx -y -p @descix/cli@4.4.0 descix app set-listed on -c <community> -a <app_id>
 ```
 
 The receipt prints `listed: true` read back from the server. The store is rebuilt from a bundle
@@ -1209,14 +1325,14 @@ cached for five minutes, so the change appears within five minutes, not instantl
 shows in the store only if its community is listed too — a platform act; ask if it is not.
 
 `descix app --help` lists the other app verbs: `set-name` (the display name), `invite` (invite
-links), `media-upload` (asset files, 200 MB per app) and `records` (structured records on the
-app data plane, apart from the KB).
+links), `media-upload`, `media-list` and `media-delete` (media files, 200 MB per app, §9.1) and
+`records` (structured records on the app data plane, apart from the KB).
 
 For everything this page does not cover — backend commands, payments, model tuning, anything —
 ask the platform itself:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix tell-me-how "how do I deploy my site"
+npx -y -p @descix/cli@4.4.0 descix tell-me-how "how do I deploy my site"
 ```
 
 It answers with the callable tools for your entitlements and their usage. That verb, plus this
@@ -1228,7 +1344,7 @@ Media files (images, audio, video, data, scripts your pages load at runtime) are
 site bundle. Upload them with `app media-upload`:
 
 ```bash
-npx -y -p @descix/cli@4.3.1 descix app media-upload -a <app_id> -f cover.png --prefix shows
+npx -y -p @descix/cli@4.4.0 descix app media-upload -a <app_id> -f cover.png --prefix shows
 # ✅ Uploaded 1 asset(s).
 #     shows/cover.png
 #       public_url: https://<app_id>.descix.net/assets/shows/cover.png
@@ -1242,16 +1358,41 @@ npx -y -p @descix/cli@4.3.1 descix app media-upload -a <app_id> -f cover.png --p
   `application/json`, `.js` and `.mjs` → `text/javascript`; an extension the CLI does not know
   goes up as `application/octet-stream`.
 - **URL.** Use the `public_url` the receipt prints, `https://<app_id>.descix.net/assets/<path>`.
-  It serves only on your app's own host: the same path on `descix.net` or on another app's host
-  is a 404. Responses carry `access-control-allow-origin: *`, so your pages framed by the store
-  shell at `https://descix.net/` load it cross-origin.
-- **Caching.** Every media file is served `public, max-age=3600`, and re-uploading the same path
-  does not clear the edge: a replaced file can be up to an hour stale at the edge and another hour
-  in a browser. Give anything that changes a new name.
-- **Listing and deleting.** No verb lists or deletes media. To enumerate your files, publish your
-  own index file (for example a JSON list of paths, uploaded beside them).
-- **Quota.** Your app has 200 MB. Every object you upload counts against it until a platform
-  admin removes it; re-uploading a path replaces that path's size rather than adding to it.
+  The same file is also served in path form on any host of the environment:
+  `https://descix.net/prod/<app_id>/assets/<path>` (on DEV, `https://dev.descix.net/dev/<app_id>/assets/<path>`).
+  A bare `/assets/<path>` resolves against the host's own app: on another app's host it is a 404,
+  and on `descix.net`, which is `daita`'s host, it answers with `daita`'s media. Responses carry
+  `access-control-allow-origin: *`, so your pages framed by the store shell at
+  `https://descix.net/` load the `public_url` cross-origin, or the path form same-origin. The path form adds `Content-Security-Policy: sandbox` and
+  `X-Content-Type-Options: nosniff`: an HTML or SVG file opened there as a page runs sandboxed,
+  while images, scripts, fonts and `fetch()` loads are unaffected; the `public_url` adds neither.
+- **Caching.** A media file is served `Cache-Control: public, no-cache`, so a replaced file is
+  visible at once. A file last uploaded before 2026-11-11 20:27 UTC still carries
+  `public, max-age=3600`: after its first re-upload, its old copy can show for up to an hour.
+- **Listing.** `app media-list` prints each object's `path`, size, `content_type`, `updated` and
+  `public_url`, then the app's total against its quota. `--prefix <folder>` lists only that
+  folder, and its total is then the folder's, not set against the quota. `--json` prints the
+  server's listing unchanged.
+
+  ```bash
+  npx -y -p @descix/cli@4.4.0 descix app media-list -a <app_id> [--prefix <folder>] [--json]
+  ```
+
+- **Deleting.** `app media-delete` takes one or more paths as `media-list` prints them, one server
+  call per path. A path that does not exist is reported as not found and the rest still run; the
+  exit code is 1 only when a call fails. It ends with
+  `<N> deleted, <M> not found, <bytes> bytes freed (<MB> MB)`. `--dry-run` deletes nothing and
+  reports what would be deleted and the bytes it would free. A delete
+  purges the edge's copy; when the purge fails the object is still deleted and the CLI prints a
+  warning that the edge may serve its copy until that copy expires.
+
+  ```bash
+  npx -y -p @descix/cli@4.4.0 descix app media-delete -a <app_id> shows/cover.png --dry-run
+  npx -y -p @descix/cli@4.4.0 descix app media-delete -a <app_id> shows/cover.png
+  ```
+
+- **Quota.** Your app has 200 MB. Every object you upload counts against it until you delete it;
+  re-uploading a path replaces that path's size rather than adding to it.
 - **Locally.** `descix serve` has no `/assets` route. The absolute `public_url` works unchanged
   from `https://localhost:<Port>/` and reads the deployed objects.
 
@@ -1259,15 +1400,15 @@ npx -y -p @descix/cli@4.3.1 descix app media-upload -a <app_id> -f cover.png --p
 
 ```bash
 cd <your app repo>                                                      # a git repo
-npx -y -p @descix/cli@4.3.1 descix config init --env prod              # 1  pin the workspace
-npx -y -p @descix/cli@4.3.1 descix login                               # 2  device code → browser → Powch passkey
-npx -y -p @descix/cli@4.3.1 descix whoami                              # 3  gate: env line + Email
-npx -y -p @descix/cli@4.3.1 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
-npx -y -p @descix/cli@4.3.1 descix app set-site -a <app_id> --static site  # 5  one mode per write
-npx -y -p @descix/cli@4.3.1 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
-npx -y -p @descix/cli@4.3.1 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
-npx -y -p @descix/cli@4.3.1 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
-npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id> --dry-run   # 9  read both lists
-npx -y -p @descix/cli@4.3.1 descix site upload -a <app_id>             # 10 then: served==built hash check
-npx -y -p @descix/cli@4.3.1 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
+npx -y -p @descix/cli@4.4.0 descix config init --env prod              # 1  pin the workspace
+npx -y -p @descix/cli@4.4.0 descix login                               # 2  device code → browser → Powch passkey
+npx -y -p @descix/cli@4.4.0 descix whoami                              # 3  gate: env line + Email
+npx -y -p @descix/cli@4.4.0 descix app init -a <app_id>                # 4  this repo IS the app (add -c <community> to create)
+npx -y -p @descix/cli@4.4.0 descix app set-site -a <app_id> --static site  # 5  one mode per write
+npx -y -p @descix/cli@4.4.0 descix serve                               # 6  open https://localhost:<Port>/ — the ROOT (scratch dir: §5.1)
+npx -y -p @descix/cli@4.4.0 descix kb corpus sync -a <app_id>          # 7  clean checkout of the ref → index (dry-run first)
+npx -y -p @descix/cli@4.4.0 descix chat -a <app_id> "<your question>"  # 8  an answer citing corpus:<blob sha>
+npx -y -p @descix/cli@4.4.0 descix site upload -a <app_id> --dry-run   # 9  read both lists
+npx -y -p @descix/cli@4.4.0 descix site upload -a <app_id>             # 10 then: served==built hash check
+npx -y -p @descix/cli@4.4.0 descix app set-listed on -c <community> -a <app_id>  # 11 in the store within 5 min
 ```
