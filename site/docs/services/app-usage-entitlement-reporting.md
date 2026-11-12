@@ -3,7 +3,7 @@
 ## Purpose
 
 `report_app_usage` is the thin platform command an **external app SDK** (e.g. the `frqtl`
-npm CLI wrapping the FRAQTL/EGPTMath WASM engine) calls on each invocation to:
+npm CLI wrapping the EGPTMath WASM engine) calls on each invocation to:
 
 1. **Verify** the caller holds a one-time/permanent entitlement for a purchasable app, and
 2. **Emit exactly one** GA4 `egpt_frqtl_usage` event per verified call (usage analytics).

@@ -6,7 +6,7 @@
 
 ## 1. Motivation
 
-The DeSciX platform operates as a virtual university with three project groups (DeSciX, EGPT, SSG-Studio), each managed by an EVP agent. These agents need deep, always-current knowledge of their project domains — but loading that knowledge by re-reading source codebases burns LLM context windows and doesn't scale.
+The DeSciX platform operates as a virtual university with three project groups (DeSciX, EGPT and SSG, the lecture-production studio), each managed by an EVP agent. These agents need deep, always-current knowledge of their project domains — but loading that knowledge by re-reading source codebases burns LLM context windows and doesn't scale.
 
 The solution is twofold:
 
