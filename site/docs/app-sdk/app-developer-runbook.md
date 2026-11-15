@@ -695,8 +695,8 @@ the terminal: `npx -y -p @descix/cli@4.4.0 descix chat --apps <app_id>,<second_a
 | `ask_multiple_apps` | a signed-in user with an app or community entitlement for each listed app | one metered turn on the user's AI credits |
 
 A signed-in user who has accepted the Terms of Service holds the platform's base apps: `daita`,
-`powch`, `egpt`, `egpt-frqtl`, `egpt-godsworld`, `egpt-courantgroup`, `daita-beast` and
-`daita-docs` on PROD. `npx -y -p @descix/cli@4.4.0 descix purchases` lists the communities and
+`powch`, `egpt`, `egpt-frqtl`, `egpt-godsworld`, one further EGPT community app, `daita-beast`
+and `daita-docs` on PROD. `npx -y -p @descix/cli@4.4.0 descix purchases` lists the communities and
 apps you hold. When the user has no credits to draw, either command is refused with
 `CREDITS_REQUIRED` before any answer is generated; top up with `descix credits buy` (§6).
 
